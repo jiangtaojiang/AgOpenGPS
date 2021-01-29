@@ -875,10 +875,10 @@ namespace AgOpenGPS
 
         public static void FindCrossingPoints(this List<Vec4> Crossings, List<Vec2> Polygon, Vec2 Point1, Vec2 Point2, int Index)
         {
-            if (Polygon.Count > 2)
+            if (Polygon.Count > 1)
             {
-                int k = Polygon.Count - 2;
-                for (int j = 0; j < Polygon.Count - 2; j +=2)
+                int k = Polygon.Count - 1;
+                for (int j = 0; j < Polygon.Count - 1; j++)
                 {
                     if (GetLineIntersection(Point1, Point2, Polygon[j], Polygon[k], out Vec2 Crossing, out double Time))
                     {
