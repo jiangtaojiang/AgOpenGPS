@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace AgOpenGPS
 {
@@ -69,12 +70,8 @@ namespace AgOpenGPS
                             + "\u00B0" +
                             mf.FindDirection(mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading) + DateTime.Now.ToString("hh:mm:ss", CultureInfo.InvariantCulture);
                         mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Mode = Gmode.AB;
-
-                        Vec3 Seg1 = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[1];
-                        Seg1.Heading = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading;
-                        mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[1] = Seg1;
                     }
-                    mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0] = new Vec3(pivot.Northing, pivot.Easting, mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading);
+                    mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0] = new Vec2(pivot.Easting, pivot.Northing);
 
                     TboxHeading.Enabled = true;
                 }
@@ -108,13 +105,13 @@ namespace AgOpenGPS
                         northing /= cnt;
 
                         mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Clear();
-                        mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Add(new Vec3(northing, easting, 0));
+                        mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Add(new Vec2(easting, northing));
 
                     }
                     else
                     {
                         Vec3 pivot = mf.pivotAxlePos;
-                        mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Add(new Vec3(pivot.Northing, pivot.Easting, 0));
+                        mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Add(new Vec2(pivot.Easting, pivot.Northing));
                     }
                     mf.YouTurnButtons(true);
                     //mf.FileSaveCurveLine();
@@ -126,15 +123,10 @@ namespace AgOpenGPS
                 {
                     Vec3 pivot = mf.pivotAxlePos;
 
-                    mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading = Math.Atan2(pivot.Easting - mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0].Easting, pivot.Northing - mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0].Northing);
+                    mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading = Math.Atan2(pivot.Easting - mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0].Easting , pivot.Northing - mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0].Northing );
                     if (mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading < 0) mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading += Glm.twoPI;
 
-                    mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[1] = new Vec3(pivot.Northing, pivot.Easting, mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading);
-
-                    Vec3 Seg0 = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0];
-                    Seg0.Heading = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading;
-                    mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0] = Seg0;
-
+                    mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[1] = new Vec2(pivot.Easting, pivot.Northing);
 
                     TboxHeading.Text = Math.Round(Glm.ToDegrees(mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading), 6).ToString();
 
@@ -147,38 +139,22 @@ namespace AgOpenGPS
                 else if (cnt > 5)
                 {
                     BtnBPoint.Enabled = false;
-                    //make sure distance isn't too big between points on Turn
-                    for (int i = 0; i < cnt - 1; i++)
-                    {
-                        int j = i + 1;
-                        //if (j == cnt) j = 0;
-                        double distance = Glm.Distance(mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[i], mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[j]);
-                        if (distance > 1.2)
-                        {
-                            Vec3 pointB = new Vec3((mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[i].Northing + mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[j].Northing) / 2.0,
-                                (mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[i].Easting + mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[j].Easting) / 2.0,
-                                mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[i].Heading);
-
-                            mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Insert(j, pointB);
-                            cnt++;
-                            i = -1;
-                        }
-                    }
-
                     //build the tail extensions
                     mf.Guidance.AddFirstLastPoints();
 
-                    mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.CalculateRoundedCorner(0.5, mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Mode == Gmode.Boundary, 0.0436332, CancellationToken.None);
-
                     //calculate average heading of line
-                    double x = 0, y = 0;
-                    for (int i = 20; i < cnt - 20; i++)
+                    double x = 0, y = 0, N, E;
+                    double Distance = 0;
+                    int i = 0;
+                    for (int j = 1; j < mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Count; i = j++)
                     {
-                        x += Math.Cos(mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[i].Heading);
-                        y += Math.Sin(mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[i].Heading);
+                        x += (N = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[j].Northing - mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[i].Northing);
+                        y += (E = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[j].Easting - mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[i].Easting);
+                        Distance += Math.Sqrt(Math.Pow(N, 2) + Math.Pow(E, 2));
                     }
-                    x /= (mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Count - 40);
-                    y /= (mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Count - 40);
+                    x /= Distance;
+                    y /= Distance;
+
                     mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading = Math.Atan2(y, x);
                     if (mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading < 0) mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading += Glm.twoPI;
 
@@ -210,7 +186,7 @@ namespace AgOpenGPS
             {
                 mf.isAutoSteerBtnOn = false;
                 mf.btnAutoSteer.Image = Properties.Resources.AutoSteerOff;
-                if (mf.yt.isYouTurnBtnOn) mf.btnAutoYouTurn.PerformClick();
+                if (mf.Guidance.isYouTurnBtnOn) mf.btnAutoYouTurn.PerformClick();
             }
             mf.btnCycleLines.Text = String.Get("gsOff");
             Close();
@@ -313,13 +289,7 @@ namespace AgOpenGPS
                     {
                         mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading = Math.Round(Glm.ToRadians(upDnHeading), 6);
                         mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Mode = Gmode.Heading;
-
-                        Vec3 Seg0 = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0];
-                        Seg0.Heading = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading;
-                        mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0] = Seg0;
-
                         mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[1] = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0];
-
 
                         NameBox.Text = "AB " + (Math.Round(Glm.ToDegrees(mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading), 1)).ToString(CultureInfo.InvariantCulture)
                             + "\u00B0" +
@@ -356,8 +326,8 @@ namespace AgOpenGPS
             mf.Guidance.Lines.Add(new CGuidanceLine());
             mf.Guidance.CurrentEditLine = mf.Guidance.Lines.Count - 1;
             mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Mode = Gmode.AB;
-            mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Add(new Vec3(0, 0, 0));
-            mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Add(new Vec3(0, 0, 0));
+            mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Add(new Vec2());
+            mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Add(new Vec2());
         }
 
         private void BtnCurve_Click(object sender, EventArgs e)
@@ -451,31 +421,10 @@ namespace AgOpenGPS
                 {
                     BoundaryOffset += mf.Guidance.WidthMinusOverlap / 2;
 
-                    Vec3 point;
-                    for (int i = 0; i < mf.bnd.bndArr[0].bndLine.Count; i++)
-                    {
-                        point.Northing = mf.bnd.bndArr[0].bndLine[i].Northing + (Math.Sin(mf.bnd.bndArr[0].bndLine[i].Heading) * -BoundaryOffset);
-                        point.Easting = mf.bnd.bndArr[0].bndLine[i].Easting + (Math.Cos(mf.bnd.bndArr[0].bndLine[i].Heading) * BoundaryOffset);
-                        point.Heading = mf.bnd.bndArr[0].bndLine[i].Heading;
-
-                        bool Add = true;
-
-
-                        for (int t = 0; t < mf.bnd.bndArr[0].bndLine.Count; t++)
-                        {
-                            double dist = ((point.Easting - mf.bnd.bndArr[0].bndLine[t].Easting) * (point.Easting - mf.bnd.bndArr[0].bndLine[t].Easting)) + ((point.Northing - mf.bnd.bndArr[0].bndLine[t].Northing) * (point.Northing - mf.bnd.bndArr[0].bndLine[t].Northing));
-                            if (dist < (BoundaryOffset * BoundaryOffset) - 0.01)
-                            {
-                                Add = false;
-                                break;
-                            }
-                        }
-
-                        if (Add) mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.Add(point);
-                    }
-
-                    //who knows which way it actually goes
-                    mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.CalculateRoundedCorner(0.5, mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Mode == Gmode.Boundary, 0.0436332, CancellationToken.None);
+                    List<Vec2> OffsetList = mf.bnd.Boundaries[0].Polygon.Points.OffsetPolyline(BoundaryOffset, CancellationToken.None, true);
+                    List<List<Vec2>> Output = OffsetList.FixPolyline(BoundaryOffset, CancellationToken.None, true, in mf.bnd.Boundaries[0].Polygon.Points, true);
+                    if (Output.Count > 0)
+                        mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments.AddRange(Output[0]);
                 }
 
                 if (mf.Guidance.CurrentEditLine < mf.Guidance.Lines.Count && mf.Guidance.CurrentEditLine > -1)

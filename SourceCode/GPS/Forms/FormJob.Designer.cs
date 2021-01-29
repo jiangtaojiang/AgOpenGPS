@@ -54,6 +54,7 @@
             // 
             // btnJobNew
             // 
+            this.btnJobNew.DialogResult = System.Windows.Forms.DialogResult.Retry;
             this.btnJobNew.Font = new System.Drawing.Font("Tahoma", 20.25F);
             this.btnJobNew.Image = global::AgOpenGPS.Properties.Resources.FileNew;
             this.btnJobNew.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -65,7 +66,6 @@
             this.btnJobNew.Text = "New";
             this.btnJobNew.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btnJobNew.UseVisualStyleBackColor = true;
-            this.btnJobNew.Click += new System.EventHandler(this.BtnJobNew_Click);
             // 
             // btnDeleteAB
             // 
@@ -109,7 +109,7 @@
             this.textBox1.Location = new System.Drawing.Point(12, 46);
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(357, 56);
+            this.textBox1.Size = new System.Drawing.Size(343, 56);
             this.textBox1.TabIndex = 88;
             // 
             // btnInField
@@ -131,7 +131,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.ClientSize = new System.Drawing.Size(381, 631);
+            this.ClientSize = new System.Drawing.Size(361, 611);
             this.ControlBox = false;
             this.Controls.Add(this.btnInField);
             this.Controls.Add(this.textBox1);

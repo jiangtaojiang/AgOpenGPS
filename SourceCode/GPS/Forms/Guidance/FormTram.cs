@@ -36,20 +36,20 @@ namespace AgOpenGPS
             snapAdj = Math.Round(mf.Guidance.WidthMinusOverlap / 2, 2);
             TboxSnapAdj.Text = (snapAdj * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
 
-            TboxWheelTrack.Text = (mf.tram.wheelTrack * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
-            TboxWheelWidth.Text = (mf.tram.WheelWidth * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
-            TboxOffset.Text = (mf.tram.abOffset * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
-            TboxTramWidth.Text = (mf.tram.tramWidth * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
-            TboxPasses.Text = mf.tram.passes.ToString();
+            TboxWheelTrack.Text = (mf.Guidance.TramWheelTrack * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
+            TboxWheelWidth.Text = (mf.Guidance.TramWheelWidth * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
+            TboxOffset.Text = (mf.Guidance.TramOffset * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
+            TboxTramWidth.Text = (mf.Guidance.TramWidth * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
+            TboxPasses.Text = mf.Guidance.TramPasses.ToString();
             label2.Text = (0.1 * mf.Mtr2Unit).ToString(mf.GuiFix) + (mf.isMetric ? " (Mtr)" : " Inch?");
             //if off, turn it on because they obviously want a tram.
-            if (mf.tram.displayMode == 0)
+            if (mf.Guidance.TramDisplayMode == 0)
             {
-                mf.tram.displayMode = 1;
+                mf.Guidance.TramDisplayMode = 1;
                 mf.Guidance.BuildTram();
             }
 
-            switch (mf.tram.displayMode)
+            switch (mf.Guidance.TramDisplayMode)
             {
                 case 0:
                     btnMode.Image = Properties.Resources.TramOff;
@@ -71,6 +71,8 @@ namespace AgOpenGPS
 
         private void BtnExit_Click(object sender, EventArgs e)
         {
+            Timer.Stop();
+            Timer.Dispose();
             mf.FileSaveGuidanceLines();
             Close();
         }
@@ -145,33 +147,37 @@ namespace AgOpenGPS
 
             if (TimerMode == 0)
             {
-                mf.tram.passes++;
+                mf.Guidance.TramPasses++;
             }
             else if (TimerMode == 1)
             {
-                mf.tram.passes--;
+                mf.Guidance.TramPasses--;
             }
-            TboxPasses.Text = mf.tram.passes.ToString();
-            Properties.Settings.Default.setTram_passes = mf.tram.passes;
+            TboxPasses.Text = mf.Guidance.TramPasses.ToString();
+            Properties.Settings.Default.setTram_passes = mf.Guidance.TramPasses;
             Properties.Settings.Default.Save();
             mf.Guidance.BuildTram();
         }
 
         private void BtnCancel_Click(object sender, EventArgs e)
         {
-            mf.tram.TramList.Clear();
-            mf.tram.displayMode = 0;
+            mf.Guidance.TramList.Clear();
+            mf.Guidance.BoundaryTram.Clear();
 
+            mf.Guidance.ResetBoundaryTram = true;
+            mf.Guidance.TramDisplayMode = 0;
+            Timer.Stop();
+            Timer.Dispose();
             mf.FileLoadGuidanceLines();
             Close();
         }
 
         private void BtnMode_Click(object sender, EventArgs e)
         {
-            mf.tram.displayMode++;
-            if (mf.tram.displayMode > 3) mf.tram.displayMode = 0;
+            mf.Guidance.TramDisplayMode++;
+            if (mf.Guidance.TramDisplayMode > 3) mf.Guidance.TramDisplayMode = 0;
             
-            switch (mf.tram.displayMode)
+            switch (mf.Guidance.TramDisplayMode)
             {
                 case 0:
                     btnMode.Image = Properties.Resources.TramOff;
@@ -211,14 +217,15 @@ namespace AgOpenGPS
 
         private void TboxWheelWidth_Enter(object sender, EventArgs e)
         {
-            using (var form = new FormNumeric(0.05, 5, mf.tram.WheelWidth, this, mf.Decimals, true, mf.Unit2Mtr, mf.Mtr2Unit))
+            using (var form = new FormNumeric(0.05, 5, mf.Guidance.TramWheelWidth, this, mf.Decimals, true, mf.Unit2Mtr, mf.Mtr2Unit))
             {
                 var result = form.ShowDialog(this);
                 if (result == DialogResult.OK)
                 {
                     TboxWheelWidth.Text = (form.ReturnValue * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
-                    Properties.Settings.Default.Tram_wheelWidth = mf.tram.WheelWidth = form.ReturnValue;
+                    Properties.Settings.Default.Tram_wheelWidth = mf.Guidance.TramWheelWidth = form.ReturnValue;
                     Properties.Settings.Default.Save();
+                    mf.Guidance.ResetBoundaryTram = true;
                     mf.Guidance.BuildTram();
                 }
             }
@@ -227,15 +234,16 @@ namespace AgOpenGPS
 
         private void TboxWheelTrack_Enter(object sender, EventArgs e)
         {
-            using (var form = new FormNumeric(0.1, 10, mf.tram.wheelTrack, this, mf.Decimals, true, mf.Unit2Mtr, mf.Mtr2Unit))
+            using (var form = new FormNumeric(0.1, 10, mf.Guidance.TramWheelTrack, this, mf.Decimals, true, mf.Unit2Mtr, mf.Mtr2Unit))
             {
                 var result = form.ShowDialog(this);
                 if (result == DialogResult.OK)
                 {
                     TboxWheelTrack.Text = (form.ReturnValue * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
-                    Properties.Settings.Default.setTram_wheelSpacing = mf.tram.wheelTrack = form.ReturnValue;
-                    mf.tram.halfWheelTrack = mf.tram.wheelTrack * 0.5;
+                    Properties.Settings.Default.setTram_wheelSpacing = mf.Guidance.TramWheelTrack = form.ReturnValue;
+                    mf.Guidance.TramHalfWheelTrack = mf.Guidance.TramWheelTrack * 0.5;
                     Properties.Settings.Default.Save();
+                    mf.Guidance.ResetBoundaryTram = true;
                     mf.Guidance.BuildTram();
                 }
             }
@@ -244,15 +252,16 @@ namespace AgOpenGPS
 
         private void TboxOffset_Enter(object sender, EventArgs e)
         {
-            using (var form = new FormNumeric(-100, 100, mf.tram.abOffset, this, mf.Decimals, true, mf.Unit2Mtr, mf.Mtr2Unit))
+            using (var form = new FormNumeric(-100, 100, mf.Guidance.TramOffset, this, mf.Decimals, true, mf.Unit2Mtr, mf.Mtr2Unit))
             {
                 var result = form.ShowDialog(this);
                 if (result == DialogResult.OK)
                 {
                     TboxOffset.Text = (form.ReturnValue * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
 
-                    Properties.Settings.Default.setTram_offset = mf.tram.abOffset = form.ReturnValue;
+                    Properties.Settings.Default.setTram_offset = mf.Guidance.TramOffset = form.ReturnValue;
                     Properties.Settings.Default.Save();
+                    mf.Guidance.ResetBoundaryTram = true;
                     mf.Guidance.BuildTram();
                 }
             }
@@ -261,14 +270,15 @@ namespace AgOpenGPS
 
         private void TboxTramWidth_Enter(object sender, EventArgs e)
         {
-            using (var form = new FormNumeric(0.2, 100, mf.tram.tramWidth, this, mf.Decimals, true, mf.Unit2Mtr, mf.Mtr2Unit))
+            using (var form = new FormNumeric(0.2, 100, mf.Guidance.TramWidth, this, mf.Decimals, true, mf.Unit2Mtr, mf.Mtr2Unit))
             {
                 var result = form.ShowDialog(this);
                 if (result == DialogResult.OK)
                 {
                     TboxTramWidth.Text = (form.ReturnValue * mf.Mtr2Unit).ToString(mf.GuiFix) + mf.Units;
-                    Properties.Settings.Default.setTram_eqWidth = mf.tram.tramWidth = form.ReturnValue;
+                    Properties.Settings.Default.setTram_eqWidth = mf.Guidance.TramWidth = form.ReturnValue;
                     Properties.Settings.Default.Save();
+                    mf.Guidance.ResetBoundaryTram = true;
                     mf.Guidance.BuildTram();
                 }
             }
@@ -277,14 +287,14 @@ namespace AgOpenGPS
 
         private void TboxPasses_Enter(object sender, EventArgs e)
         {
-            using (var form = new FormNumeric(0, 999, mf.tram.passes, this, 0, false))
+            using (var form = new FormNumeric(-999, 999, mf.Guidance.TramPasses, this, 0, false))
             {
                 var result = form.ShowDialog(this);
                 if (result == DialogResult.OK)
                 {
-                    mf.tram.passes = (int)form.ReturnValue;
-                    TboxPasses.Text = mf.tram.passes.ToString();
-                    Properties.Settings.Default.setTram_passes = mf.tram.passes;
+                    mf.Guidance.TramPasses = (int)form.ReturnValue;
+                    TboxPasses.Text = mf.Guidance.TramPasses.ToString();
+                    Properties.Settings.Default.setTram_passes = mf.Guidance.TramPasses;
                     Properties.Settings.Default.Save();
                     mf.Guidance.BuildTram();
                 }

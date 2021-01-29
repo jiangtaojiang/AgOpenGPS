@@ -371,7 +371,7 @@ namespace AgOpenGPS
             numberOfSections = 0;
             UpdateNumberOfSections();
 
-            Properties.Vehicle.Default.ToolSettings.Add(new ToolSettings() {});
+            Properties.Vehicle.Default.ToolSettings.Add(new ToolSettings());
             Properties.Vehicle.Default.Save();
 
             mf.Tools.Add(new CTool(mf, mf.Tools.Count));

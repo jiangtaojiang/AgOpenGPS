@@ -48,7 +48,7 @@ namespace AgOpenGPS
 
         private void IsBetweenSunriseSunset(double lat, double lon)
         {
-            CSunTimes.Instance.CalculateSunRiseSetTimes(pn.latitude, pn.longitude, dateToday, ref sunrise, ref sunset);
+            CSunTimes.Instance.CalculateSunRiseSetTimes(Latitude, Longitude, dateToday, ref sunrise, ref sunset);
             isDay = (DateTime.Now.Ticks < sunset.Ticks && DateTime.Now.Ticks > sunrise.Ticks);
         }
 
@@ -92,22 +92,6 @@ namespace AgOpenGPS
 
             //get the Tools directory, if not exist, create
             envDirectory = baseDirectory + "Environments\\";
-
-            //make sure current field directory exists, null if not
-            currentFieldDirectory = Properties.Settings.Default.setF_CurrentDir;
-
-            string curDir;
-            if (currentFieldDirectory != "")
-            {
-                curDir = fieldsDirectory + currentFieldDirectory + "//";
-                dir = Path.GetDirectoryName(curDir);
-                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                {
-                    currentFieldDirectory = "";
-                    Properties.Settings.Default.setF_CurrentDir = "";
-                    Properties.Settings.Default.Save();
-                }
-            }
 
             //set the language to last used
             SetLanguage((object)Properties.Settings.Default.setF_culture, null);
@@ -155,7 +139,7 @@ namespace AgOpenGPS
 
             //set the correct zoom and grid
             camera.camSetDistance = camera.zoomValue * camera.zoomValue * -1;
-            SetZoom();
+            SetZoom(camera.camSetDistance);
 
             //which heading source is being used
             HeadingFromSource = Properties.Vehicle.Default.HeadingFromSource;
@@ -181,15 +165,15 @@ namespace AgOpenGPS
             fd.userSquareMetersAlarm = Properties.Settings.Default.setF_UserTripAlarm;
 
             if (Properties.Settings.Default.setAS_youTurnShape == "Custom")
-                yt.LoadYouTurnShapeFromData(Properties.Settings.Default.Custom);
+                Guidance.LoadYouTurnShapeFromData(Properties.Settings.Default.Custom);
             else if (Properties.Settings.Default.setAS_youTurnShape == "KeyHole")
-                yt.LoadYouTurnShapeFromData(Properties.Settings.Default.KeyHole);
+                Guidance.LoadYouTurnShapeFromData(Properties.Settings.Default.KeyHole);
             else if (Properties.Settings.Default.setAS_youTurnShape == "SemiCircle")
-                yt.LoadYouTurnShapeFromData(Properties.Settings.Default.SemiCircle);
+                Guidance.LoadYouTurnShapeFromData(Properties.Settings.Default.SemiCircle);
             else if (Properties.Settings.Default.setAS_youTurnShape == "WideReturn")
-                yt.LoadYouTurnShapeFromData(Properties.Settings.Default.WideReturn);
+                Guidance.LoadYouTurnShapeFromData(Properties.Settings.Default.WideReturn);
             else
-                yt.LoadYouTurnShapeFromData(Properties.Settings.Default.KeyHole);
+                Guidance.LoadYouTurnShapeFromData(Properties.Settings.Default.KeyHole);
 
             //load th elightbar resolution
             lightbarCmPerPixel = Properties.Settings.Default.setDisplay_lightbarCmPerPixel;
@@ -270,71 +254,28 @@ namespace AgOpenGPS
 
             oglZoom.SendToBack();
 
-            yt.rowSkipsWidth = Properties.Vehicle.Default.set_youSkipWidth;
-            cboxpRowWidth.SelectedIndex = yt.rowSkipsWidth - 1;
+            Guidance.rowSkipsWidth = Properties.Vehicle.Default.set_youSkipWidth;
+            cboxpRowWidth.SelectedIndex = Guidance.rowSkipsWidth - 1;
 
             FixPanelsAndMenus();
 
             UpdateNtripButton();
 
             stripSectionColor.BackColor = sectionColorDay;
-
-            if (isAutoLoadFields)
-            {
-                LoadFields();
-            }
         }
 
         public void LoadFields()
         {
             Fields.Clear();
-
-            string[] dirs = Directory.GetDirectories(fieldsDirectory);
-            foreach (string dir in dirs)
+            if (fieldsDirectory != null)
             {
-                double northingOffset = 0;
-                double eastingOffset = 0;
-                double convergenceAngle = 0;
-                string fieldDirectory = Path.GetFileName(dir);
-                string filename = dir + "\\Field.txt";
-                string line;
-
-                //make sure directory has a field.txt in it
-                if (File.Exists(filename))
+            string[] dirs = Directory.GetDirectories(fieldsDirectory);
+                foreach (string dir in dirs)
                 {
-                    using (StreamReader reader = new StreamReader(filename))
-                    {
-                        try
-                        {
-                            //Date time line
-                            for (int i = 0; i < 4; i++)
-                            {
-                                line = reader.ReadLine();
-                            }
-
-                            //start positions
-                            if (!reader.EndOfStream)
-                            {
-                                line = reader.ReadLine();
-                                string[] offs = line.Split(',');
-
-                                eastingOffset = (double.Parse(offs[0], CultureInfo.InvariantCulture));
-                                northingOffset = (double.Parse(offs[1], CultureInfo.InvariantCulture));
-                                line = reader.ReadLine();
-                                if (!reader.EndOfStream)
-                                {
-                                    line = reader.ReadLine();
-                                    convergenceAngle = double.Parse(line, CultureInfo.InvariantCulture);
-                                }
-                            }
-                        }
-                        catch (Exception)
-                        {
-                        }
-                    }
-
+                    string line;
+                    string[] words;
                     //grab the boundary
-                    filename = dir + "\\Boundary.txt";
+                    string filename = dir + "\\Boundary.txt";
                     if (!File.Exists(filename))
                         filename = dir + "\\Boundary.Tmp";
 
@@ -344,49 +285,75 @@ namespace AgOpenGPS
                         {
                             try
                             {
-                                //read header
-                                line = reader.ReadLine();//Boundary
+                                CAutoLoadField Field = new CAutoLoadField();
+                                Field.Dir = Path.GetFileName(dir);
 
-                                if (!reader.EndOfStream) //empty boundary field
+                                line = reader.ReadLine();//"$Version,5.0.10"
+                                if (line != null)
                                 {
-                                    //True or False OR points from older boundary files
-                                    line = reader.ReadLine();
-
-
-                                    //Check for older boundary files, then above line string is num of points
-                                    if (line == "True" || line == "False")
+                                    words = line.Split(',');
+                                    if (words.Length > 1 && words[1] == "5.0.10")
                                     {
-                                        line = reader.ReadLine(); //number of points
-                                        line = reader.ReadLine(); //number of points
-                                    }
+                                        line = reader.ReadLine(); words = line.Split(',');
 
-                                    int numPoints = int.Parse(line);
-                                    if (numPoints > 0)
-                                    {
-                                        Fields.Add(new CAutoLoadField());
-                                        Fields[Fields.Count - 1].Dir = Path.GetFileName(dir);
+                                        Field.LatStart = double.Parse(words[1], CultureInfo.InvariantCulture);
+                                        Field.LonStart = double.Parse(words[2], CultureInfo.InvariantCulture);
+                                        line = reader.ReadLine(); words = line.Split(',');
+                                        int BndCount = int.Parse(words[1]);//Boundaries
 
-                                        //load the line
-                                        for (int i = 0; i < numPoints; i++)
+                                        double MPerDegLat = 111132.92 - 559.82 * Math.Cos(2.0 * Field.LatStart * 0.01745329251994329576923690766743) + 1.175 * Math.Cos(4.0 * Field.LatStart * 0.01745329251994329576923690766743) - 0.0023 * Math.Cos(6.0 * Field.LatStart * 0.01745329251994329576923690766743);
+
+
+                                        for (int i = 0; i < BndCount; i++)
                                         {
-                                            line = reader.ReadLine();
-                                            string[] words2 = line.Split(',');
-                                            double easting = double.Parse(words2[0], CultureInfo.InvariantCulture);
-                                            double northing = double.Parse(words2[1], CultureInfo.InvariantCulture);
-                                            Vec2 vecPt = new Vec2((Math.Sin(convergenceAngle) * easting) + (Math.Cos(convergenceAngle) * northing) + northingOffset, (Math.Cos(convergenceAngle) * easting) - (Math.Sin(convergenceAngle) * northing) + eastingOffset);
+                                            line = reader.ReadLine(); words = line.Split(',');
+                                            //newbnd.isDriveThru = bool.Parse(words[1]);
+                                            //newbnd.isDriveAround = bool.Parse(words[2]);
 
-                                            if (i == 0)
+                                            line = reader.ReadLine(); words = line.Split(',');
+
+                                            line = reader.ReadLine(); words = line.Split(',');
+                                            Field.Northingmax = double.Parse(words[1], CultureInfo.InvariantCulture);
+                                            Field.Northingmin = double.Parse(words[2], CultureInfo.InvariantCulture);
+
+                                            line = reader.ReadLine(); words = line.Split(',');
+                                            Field.Eastingmax = double.Parse(words[1], CultureInfo.InvariantCulture);
+                                            Field.Eastingmin = double.Parse(words[2], CultureInfo.InvariantCulture);
+
+                                            ConvertLocalToCurrentLocal(Field.Northingmax, Field.Eastingmax, Field.LatStart, Field.LonStart, MPerDegLat, out Field.Northingmax, out Field.Eastingmax);
+                                            ConvertLocalToCurrentLocal(Field.Northingmin, Field.Eastingmin, Field.LatStart, Field.LonStart, MPerDegLat, out Field.Northingmin, out Field.Eastingmin);
+
+                                            line = reader.ReadLine(); words = line.Split(',');
+                                            Field.Area = double.Parse(words[1], CultureInfo.InvariantCulture);
+
+                                            line = reader.ReadLine(); words = line.Split(',');
+                                            int numPoints = int.Parse(words[1]);
+                                            for (int j = 0; j < numPoints; j++)
                                             {
-                                                Fields[Fields.Count - 1].Northingmin = Fields[Fields.Count - 1].Northingmax = vecPt.Northing;
-                                                Fields[Fields.Count - 1].Eastingmin = Fields[Fields.Count - 1].Eastingmax = vecPt.Easting;
+                                                line = reader.ReadLine(); words = line.Split(',');
+                                                double easting = double.Parse(words[0], CultureInfo.InvariantCulture);
+                                                double northing = double.Parse(words[1], CultureInfo.InvariantCulture);
+                                                ConvertLocalToCurrentLocal(northing, easting, Field.LatStart, Field.LonStart, MPerDegLat, out double Northing, out double Easting);
+                                                Field.Polygon.Points.Add(new Vec2(Easting, Northing));
                                             }
 
-                                            if (Fields[Fields.Count - 1].Northingmin > vecPt.Northing) Fields[Fields.Count - 1].Northingmin = vecPt.Northing;
-                                            if (Fields[Fields.Count - 1].Northingmax < vecPt.Northing) Fields[Fields.Count - 1].Northingmax = vecPt.Northing;
-                                            if (Fields[Fields.Count - 1].Eastingmin > vecPt.Easting) Fields[Fields.Count - 1].Eastingmin = vecPt.Easting;
-                                            if (Fields[Fields.Count - 1].Eastingmax < vecPt.Easting) Fields[Fields.Count - 1].Eastingmax = vecPt.Easting;
+                                            line = reader.ReadLine(); words = line.Split(',');
+                                            int IdxPoints = int.Parse(words[1]);
+                                            for (int j = 0; j < IdxPoints; j++)
+                                            {
+                                                line = reader.ReadLine();
+                                                int Idx = int.Parse(line, CultureInfo.InvariantCulture);
+                                                Field.Polygon.Indexer.Add(Idx);
+                                            }
+                                            Field.Polygon.ResetIndexer = true;
 
-                                            Fields[Fields.Count - 1].Boundary.Add(vecPt);
+                                            line = reader.ReadLine(); words = line.Split(',');
+
+                                            if (numPoints > 0)
+                                                Fields.Add(Field);
+
+                                            //limit to only first polygon boundary
+                                            if (i == 0) break;
                                         }
                                     }
                                 }
@@ -410,7 +377,7 @@ namespace AgOpenGPS
                 this.BackColor = dayColor;
                 foreach (Control c in this.Controls)
                 {
-                        c.ForeColor = Color.Black;
+                    c.ForeColor = Color.Black;
                 }
             }
             else //nightmode
@@ -576,30 +543,30 @@ namespace AgOpenGPS
                     middle = oglMain.Width / 2 - oglMain.Width / 4;
                     if (point.X > middle - 140 && point.X < middle)
                     {
-                        if (yt.isYouTurnTriggered)
+                        if (Guidance.isYouTurnTriggered)
                         {
-                            yt.ResetYouTurn();
+                            Guidance.ResetYouTurn();
                             Guidance.ResetABLine = true;
                         }
                         else
                         {
-                            yt.isYouTurnTriggered = true;
-                            yt.BuildManualYouTurn(false, true);
+                            Guidance.isYouTurnTriggered = true;
+                            Guidance.BuildManualYouTurn(false, true);
                             return;
                         }
                     }
 
                     if (point.X > middle && point.X < middle + 140)
                     {
-                        if (yt.isYouTurnTriggered)
+                        if (Guidance.isYouTurnTriggered)
                         {
-                            yt.ResetYouTurn();
+                            Guidance.ResetYouTurn();
                             Guidance.ResetABLine = true;
                         }
                         else
                         {
-                            yt.isYouTurnTriggered = true;
-                            yt.BuildManualYouTurn(true, true);
+                            Guidance.isYouTurnTriggered = true;
+                            Guidance.BuildManualYouTurn(true, true);
                             return;
                         }
                     }
@@ -653,16 +620,10 @@ namespace AgOpenGPS
 
         public void YouTurnButtons(bool Enable)
         {
-            yt.ResetYouTurn();
-            yt.isYouTurnBtnOn = false;
+            Guidance.ResetYouTurn();
+            Guidance.isYouTurnBtnOn = false;
             btnAutoYouTurn.Enabled = Enable;
             btnAutoYouTurn.Image = Properties.Resources.YouTurnNo;
-        }
-
-        private void ShowNoGPSWarning()
-        {
-            oglMain.MakeCurrent();
-            oglMain.Refresh();
         }
 
         private void HalfSecond_Update(object sender, EventArgs e)
@@ -687,7 +648,7 @@ namespace AgOpenGPS
                 btnEditHeading.Text = ((int)(crossTrackError / 25.54) + " in"); //cross track errorss
             }
 
-            lblHz.Text = Math.Round(HzTime, 1) + " Hz " + Math.Round(FrameTime, 0) + " ms\r\n" + FixQuality;
+            lblHz.Text = HzTime.ToString("##.0") + " Hz " + Math.Round(FrameTime, 0) + " ms "+ Math.Round(FrameTime2, 0) + " ms\r\n" + FixQuality;
 
             if (OneSecondUpdateBool = !OneSecondUpdateBool)
             {

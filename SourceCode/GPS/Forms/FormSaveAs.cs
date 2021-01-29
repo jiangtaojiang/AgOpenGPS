@@ -111,13 +111,13 @@ namespace AgOpenGPS
             mf.currentFieldDirectory += string.Format("{0}", DateTime.Now.ToString("yyyy.MMM.dd HH_mm", CultureInfo.InvariantCulture));
 
             //get the directory and make sure it exists, create if not
-            string dirNewField = mf.fieldsDirectory + mf.currentFieldDirectory + "\\";
+            string dirNewField = mf.fieldsDirectory + mf.currentFieldDirectory;
 
 
             // create from template
             string directoryName = Path.GetDirectoryName(dirNewField);
 
-            if ((!string.IsNullOrEmpty(directoryName)) && (Directory.Exists(directoryName)))
+            if ((!string.IsNullOrEmpty(directoryName)) && Directory.Exists(directoryName))
             {
                 MessageBox.Show(String.Get("gsChooseADifferentName"), String.Get("gsDirectoryExists"), MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 return;
@@ -129,129 +129,66 @@ namespace AgOpenGPS
                 { Directory.CreateDirectory(directoryName); }
             }
 
-            string line;
-            string offsets, convergence, startFix;
-
-            using (StreamReader reader = new StreamReader(mf.fieldsDirectory + lblTemplateChosen.Text + "\\Field.txt"))
+            //create txt file copies
+            string templateDirectoryName = (mf.fieldsDirectory + lblTemplateChosen.Text);
+            string fileToCopy;
+            string destinationDirectory;
+            if (chkApplied.Checked)
             {
-                try
-                {
-                    line = reader.ReadLine();
-                    line = reader.ReadLine();
-                    line = reader.ReadLine();
-                    line = reader.ReadLine();
+                fileToCopy = templateDirectoryName + "\\Sections.txt";
+                destinationDirectory = directoryName + "\\Sections.txt";
+                if (File.Exists(fileToCopy))
+                    File.Copy(fileToCopy, destinationDirectory);
+            }
+            else mf.FileCreateSections();
 
-                    //read the Offsets  - all we really need from template field file
-                    offsets = reader.ReadLine();
+            fileToCopy = templateDirectoryName + "\\Boundary.txt";
+            destinationDirectory = directoryName + "\\Boundary.txt";
+            if (!File.Exists(fileToCopy))
+                fileToCopy = templateDirectoryName + "\\Boundary.Tmp";
+            if (File.Exists(fileToCopy))
+                File.Copy(fileToCopy, destinationDirectory);
 
-                    line = reader.ReadLine();
-                    convergence = reader.ReadLine();
+            if (chkFlags.Checked)
+            {
+                fileToCopy = templateDirectoryName + "\\Flags.txt";
+                destinationDirectory = directoryName + "\\Flags.txt";
+                if (File.Exists(fileToCopy))
+                    File.Copy(fileToCopy, destinationDirectory);
+            }
 
-                    line = reader.ReadLine();
-                    startFix = reader.ReadLine();
-                }
-                catch (Exception ex)
-                {
-                    mf.WriteErrorLog("While Opening Field" + ex);
-
-                    mf.TimedMessageBox(2000, String.Get("gsFieldFileIsCorrupt"), String.Get("gsChooseADifferentField"));
-                    mf.StartTasks(null, 0, TaskName.CloseJob);
-                    return;
-                }
-
-                const string myFileName = "Field.txt";
-
-                using (StreamWriter writer = new StreamWriter(dirNewField + myFileName))
-                {
-                    //Write out the date
-                    writer.WriteLine(DateTime.Now.ToString("yyyy-MMMM-dd hh:mm:ss tt", CultureInfo.InvariantCulture));
-
-                    writer.WriteLine("$FieldDir");
-                    writer.WriteLine(mf.currentFieldDirectory.ToString(CultureInfo.InvariantCulture));
-
-                    //write out the easting and northing Offsets
-                    writer.WriteLine("$Offsets");
-                    writer.WriteLine(offsets);
-
-                    writer.WriteLine("$Convergence");
-                    writer.WriteLine(convergence);
-
-                    writer.WriteLine("StartFix");
-                    writer.WriteLine(startFix);
-                }
-
-                //create txt file copies
-                string templateDirectoryName = (mf.fieldsDirectory + lblTemplateChosen.Text);
-                string fileToCopy = "";
-                string destinationDirectory = "";
-
-                if (chkApplied.Checked)
-                {
-                     fileToCopy = templateDirectoryName + "\\Sections.txt";
-                     destinationDirectory = directoryName + "\\Sections.txt";
-                    if (File.Exists(fileToCopy))
-                        File.Copy(fileToCopy, destinationDirectory);
-                }
-                else mf.FileCreateSections();
-
-                 fileToCopy = templateDirectoryName + "\\Boundary.txt";
-                 destinationDirectory = directoryName + "\\Boundary.txt";
-                if (!File.Exists(fileToCopy))
-                    fileToCopy = templateDirectoryName + "\\Boundary.Tmp";
+            if (chkGuidanceLines.Checked)
+            {
+                fileToCopy = templateDirectoryName + "\\ABLines.txt";
+                destinationDirectory = directoryName + "\\ABLines.txt";
                 if (File.Exists(fileToCopy))
                     File.Copy(fileToCopy, destinationDirectory);
 
-                if (chkFlags.Checked)
-                {
-                    fileToCopy = templateDirectoryName + "\\Flags.txt";
-                    destinationDirectory = directoryName + "\\Flags.txt";
-                    if (File.Exists(fileToCopy))
-                        File.Copy(fileToCopy, destinationDirectory);
-                }
-                else
-                {
-                    mf.FileSaveFlags();
-                }
+                fileToCopy = templateDirectoryName + "\\RecPath.txt";
+                destinationDirectory = directoryName + "\\RecPath.txt";
+                if (File.Exists(fileToCopy))
+                    File.Copy(fileToCopy, destinationDirectory);
 
-                if (chkGuidanceLines.Checked)
-                {
-                    fileToCopy = templateDirectoryName + "\\ABLines.txt";
-                    destinationDirectory = directoryName + "\\ABLines.txt";
-                    if (File.Exists(fileToCopy))
-                        File.Copy(fileToCopy, destinationDirectory);
-
-                    fileToCopy = templateDirectoryName + "\\RecPath.txt";
-                    destinationDirectory = directoryName + "\\RecPath.txt";
-                    if (File.Exists(fileToCopy))
-                        File.Copy(fileToCopy, destinationDirectory);
-
-                    fileToCopy = templateDirectoryName + "\\GuidanceLines.txt";
-                    destinationDirectory = directoryName + "\\GuidanceLines.txt";
-                    if (File.Exists(fileToCopy))
-                        File.Copy(fileToCopy, destinationDirectory);
-                }
-                else
-                {
-                    mf.FileSaveGuidanceLines();
-                    mf.FileSaveRecPath();
-                }
-
-                if (chkHeadland.Checked)
-                {
-                    fileToCopy = templateDirectoryName + "\\Headland.txt";
-                    destinationDirectory = directoryName + "\\Headland.txt";
-                    if (!File.Exists(fileToCopy))
-                        fileToCopy = templateDirectoryName + "\\Headland.Tmp";
-                    if (File.Exists(fileToCopy))
-                            File.Copy(fileToCopy, destinationDirectory);
-                }
-                else
-                    mf.FileSaveHeadland();
-
-                //now open the newly cloned field
-                mf.FileOpenField(dirNewField + myFileName);
-                mf.Text = "AgOpenGPS - " + mf.currentFieldDirectory;
+                fileToCopy = templateDirectoryName + "\\GuidanceLines.txt";
+                destinationDirectory = directoryName + "\\GuidanceLines.txt";
+                if (File.Exists(fileToCopy))
+                    File.Copy(fileToCopy, destinationDirectory);
             }
+
+            if (chkHeadland.Checked)
+            {
+                fileToCopy = templateDirectoryName + "\\Headland.txt";
+                destinationDirectory = directoryName + "\\Headland.txt";
+                if (!File.Exists(fileToCopy))
+                    fileToCopy = templateDirectoryName + "\\Headland.Tmp";
+                if (File.Exists(fileToCopy))
+                    File.Copy(fileToCopy, destinationDirectory);
+            }
+
+            mf.FileSaveEverythingBeforeClosingField();
+            //now open the newly cloned field
+            mf.FileOpenField();
+            mf.Text = "AgOpenGPS - " + mf.currentFieldDirectory;
 
             DialogResult = DialogResult.OK;
             Close();

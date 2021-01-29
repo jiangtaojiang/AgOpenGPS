@@ -216,7 +216,7 @@
       <Value Profile="(Default)">1.2</Value>
     </Setting>
     <Setting Name="SnapOffsetDistance" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0.1</Value>
+      <Value Profile="(Default)">1</Value>
     </Setting>
     <Setting Name="HeadingFromSource" Type="System.String" Scope="User">
       <Value Profile="(Default)">Fix</Value>

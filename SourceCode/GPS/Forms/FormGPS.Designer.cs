@@ -119,7 +119,7 @@
             this.layoutPanelRight = new System.Windows.Forms.TableLayoutPanel();
             this.btnGuidance = new System.Windows.Forms.Button();
             this.btnAutoYouTurn = new System.Windows.Forms.Button();
-            this.btnContourPriority = new System.Windows.Forms.Button();
+            this.btnSnapCurrent = new System.Windows.Forms.Button();
             this.btnMakeLinesFromBoundary = new System.Windows.Forms.Button();
             this.btnAutoSection = new System.Windows.Forms.Button();
             this.btnManualSection = new System.Windows.Forms.Button();
@@ -717,7 +717,7 @@
             // 
             // NMEAWatchdog
             // 
-            this.NMEAWatchdog.Interval = 15;
+            this.NMEAWatchdog.Interval = 2000;
             this.NMEAWatchdog.Tick += new System.EventHandler(this.ScanForNMEA_Tick);
             // 
             // lblSpeed
@@ -1069,7 +1069,6 @@
             this.oglBack.VSync = false;
             this.oglBack.Load += new System.EventHandler(this.oglBack_Load);
             this.oglBack.Paint += new System.Windows.Forms.PaintEventHandler(this.oglBack_Paint);
-            this.oglBack.Resize += new System.EventHandler(this.oglBack_Resize);
             // 
             // lblHz
             // 
@@ -1096,7 +1095,7 @@
             this.layoutPanelRight.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.layoutPanelRight.Controls.Add(this.btnGuidance, 1, 1);
             this.layoutPanelRight.Controls.Add(this.btnAutoYouTurn, 1, 5);
-            this.layoutPanelRight.Controls.Add(this.btnContourPriority, 0, 0);
+            this.layoutPanelRight.Controls.Add(this.btnSnapCurrent, 0, 0);
             this.layoutPanelRight.Controls.Add(this.btnMakeLinesFromBoundary, 0, 3);
             this.layoutPanelRight.Controls.Add(this.btnAutoSection, 1, 4);
             this.layoutPanelRight.Controls.Add(this.btnManualSection, 1, 3);
@@ -1163,21 +1162,21 @@
             // 
             // btnContourPriority
             // 
-            this.btnContourPriority.BackColor = System.Drawing.Color.Transparent;
-            this.btnContourPriority.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.btnContourPriority.FlatAppearance.BorderColor = System.Drawing.SystemColors.HotTrack;
-            this.btnContourPriority.FlatAppearance.BorderSize = 0;
-            this.btnContourPriority.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnContourPriority.Font = new System.Drawing.Font("Tahoma", 14.25F);
-            this.btnContourPriority.Image = global::AgOpenGPS.Properties.Resources.Snap2;
-            this.btnContourPriority.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.btnContourPriority.Location = new System.Drawing.Point(4, 4);
-            this.btnContourPriority.Name = "btnContourPriority";
-            this.btnContourPriority.Size = new System.Drawing.Size(82, 73);
-            this.btnContourPriority.TabIndex = 178;
-            this.btnContourPriority.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
-            this.btnContourPriority.UseVisualStyleBackColor = false;
-            this.btnContourPriority.Click += new System.EventHandler(this.btnContourPriority_Click);
+            this.btnSnapCurrent.BackColor = System.Drawing.Color.Transparent;
+            this.btnSnapCurrent.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.btnSnapCurrent.FlatAppearance.BorderColor = System.Drawing.SystemColors.HotTrack;
+            this.btnSnapCurrent.FlatAppearance.BorderSize = 0;
+            this.btnSnapCurrent.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSnapCurrent.Font = new System.Drawing.Font("Tahoma", 14.25F);
+            this.btnSnapCurrent.Image = global::AgOpenGPS.Properties.Resources.Snap2;
+            this.btnSnapCurrent.ImeMode = System.Windows.Forms.ImeMode.NoControl;
+            this.btnSnapCurrent.Location = new System.Drawing.Point(4, 4);
+            this.btnSnapCurrent.Name = "btnContourPriority";
+            this.btnSnapCurrent.Size = new System.Drawing.Size(82, 73);
+            this.btnSnapCurrent.TabIndex = 178;
+            this.btnSnapCurrent.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
+            this.btnSnapCurrent.UseVisualStyleBackColor = false;
+            this.btnSnapCurrent.Click += new System.EventHandler(this.btnSnapCurrent_Click);
             // 
             // btnMakeLinesFromBoundary
             // 
@@ -1455,7 +1454,7 @@
             this.snapToCurrent.ShowDropDownArrow = false;
             this.snapToCurrent.Size = new System.Drawing.Size(90, 76);
             this.snapToCurrent.Text = "88.8";
-            this.snapToCurrent.Click += new System.EventHandler(this.btnContourPriority_Click);
+            this.snapToCurrent.Click += new System.EventHandler(this.btnSnapCurrent_Click);
             // 
             // snapLeftBigStrip
             // 
@@ -2460,7 +2459,7 @@
         public System.Windows.Forms.Button btnAutoYouTurn;
         public System.Windows.Forms.Button btnAutoSteer;
         private System.Windows.Forms.HScrollBar hsbarStepDistance;
-        public System.Windows.Forms.Button btnContourPriority;
+        public System.Windows.Forms.Button btnSnapCurrent;
         private System.Windows.Forms.ToolStripMenuItem shortcutKeysToolStripMenuItem;
         private OpenTK.GLControl oglZoom;
         private OpenTK.GLControl oglMain;

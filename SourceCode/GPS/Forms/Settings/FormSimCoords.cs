@@ -31,15 +31,15 @@ namespace AgOpenGPS
             TboxLatitude.Text = (latitude = Math.Round(Properties.Settings.Default.setGPS_SimLatitude, 7)).ToString("N7");
             TboxLongitude.Text = (longitude = Math.Round(Properties.Settings.Default.setGPS_SimLongitude, 7)).ToString("N7");
 
-            lblLatStart.Text = mf.pn.latStart.ToString("N6");
-            lblLonStart.Text = mf.pn.lonStart.ToString("N6");
-            if (mf.pn.latStart == 0)
+            lblLatStart.Text = (mf.LatStart + 0).ToString("N6");
+            lblLonStart.Text = (mf.LonStart + 0).ToString("N6");
+            if (mf.LatStart == 0)
             {
                 btnGetFieldFix.Enabled = false;
             }
 
-            lblGPSLat.Text = mf.pn.latitude.ToString("N6");
-            lblGPSLon.Text = mf.pn.longitude.ToString("N6");
+            lblGPSLat.Text = (mf.Latitude + 0).ToString("N6");
+            lblGPSLon.Text = (mf.Longitude + 0).ToString("N6");
         }
 
         private void BntOK_Click(object sender, EventArgs e)
@@ -55,20 +55,20 @@ namespace AgOpenGPS
 
         private void BtnGetFieldFix_Click(object sender, EventArgs e)
         {
-            TboxLatitude.Text = (latitude = Math.Round(mf.pn.latStart, 7)).ToString("N7");
-            TboxLongitude.Text = (longitude = Math.Round(mf.pn.lonStart, 7)).ToString("N7");
+            TboxLatitude.Text = (latitude = Math.Round(mf.LatStart, 7)).ToString("N7");
+            TboxLongitude.Text = (longitude = Math.Round(mf.LonStart, 7)).ToString("N7");
         }
 
         private void Button1_Click(object sender, EventArgs e)
         {
-            TboxLatitude.Text = (latitude = Math.Round(mf.pn.latitude, 7)).ToString("N7");
-            TboxLongitude.Text = (longitude = Math.Round(mf.pn.longitude, 7)).ToString("N7");
+            TboxLatitude.Text = (latitude = Math.Round(mf.Latitude, 7)).ToString("N7");
+            TboxLongitude.Text = (longitude = Math.Round(mf.Longitude, 7)).ToString("N7");
         }
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            lblGPSLat.Text = mf.pn.latitude.ToString("N6");
-            lblGPSLon.Text = mf.pn.longitude.ToString("N6");
+            lblGPSLat.Text = (mf.Latitude + 0).ToString("N6");
+            lblGPSLon.Text = (mf.Longitude + 0).ToString("N6");
         }
 
         private void TboxLatitude_Enter(object sender, EventArgs e)

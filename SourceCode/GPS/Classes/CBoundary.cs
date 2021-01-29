@@ -10,9 +10,9 @@ namespace AgOpenGPS
         //copy of the mainform address
         private readonly FormGPS mf;
 
-        public List<CBoundaryLines> bndArr = new List<CBoundaryLines>();
+        public List<CBoundaryLines> Boundaries = new List<CBoundaryLines>();
 
-        public List<Vec3> bndBeingMadePts = new List<Vec3>();
+        public List<Vec2> bndBeingMadePts = new List<Vec2>();
 
         public double createBndOffset;
         public bool isBndBeingMade;
@@ -32,13 +32,18 @@ namespace AgOpenGPS
 
         public void DrawBoundaryLines()
         {
-            for (int i = 0; i < bndArr.Count; i++)
+            for (int i = 0; i < Boundaries.Count; i++)
             {
                 if (boundarySelected == i) GL.Color3(1.0f, 0.0f, 0.0f);
                 else GL.Color3(0.95f, 0.5f, 0.250f);
-                if (bndArr[i].Northingmin > mf.worldGrid.NorthingMax || bndArr[i].Northingmax < mf.worldGrid.NorthingMin) continue;
-                if (bndArr[i].Eastingmin > mf.worldGrid.EastingMax || bndArr[i].Eastingmax < mf.worldGrid.EastingMin) continue;
-                bndArr[i].DrawBoundaryLine();
+
+                if (Boundaries[i].Northingmin <= mf.worldGrid.NorthingMax && Boundaries[i].Northingmax >= mf.worldGrid.NorthingMin)
+                {
+                    if (Boundaries[i].Eastingmin <= mf.worldGrid.EastingMax && Boundaries[i].Eastingmax >= mf.worldGrid.EastingMin)
+                    {
+                        Boundaries[i].Polygon.DrawPolygon(false);
+                    }
+                }
             }
 
             if (bndBeingMadePts.Count > 0)
@@ -57,16 +62,16 @@ namespace AgOpenGPS
                 GL.Enable(EnableCap.LineStipple);
                 GL.LineStipple(1, 0x0700);
                 GL.Begin(PrimitiveType.LineStrip);
-                if (mf.bnd.isDrawRightSide)
+                if (isDrawRightSide)
                 {
                     GL.Vertex3(bndBeingMadePts[0].Easting, bndBeingMadePts[0].Northing, 0);
-                    GL.Vertex3(pivot.Easting + Math.Cos(pivot.Heading) * mf.bnd.createBndOffset, pivot.Northing + Math.Sin(pivot.Heading) * -mf.bnd.createBndOffset, 0);
+                    GL.Vertex3(pivot.Easting + Math.Cos(pivot.Heading) * createBndOffset, pivot.Northing + Math.Sin(pivot.Heading) * -createBndOffset, 0);
                     GL.Vertex3(bndBeingMadePts[bndBeingMadePts.Count - 1].Easting, bndBeingMadePts[bndBeingMadePts.Count - 1].Northing, 0);
                 }
                 else
                 {
                     GL.Vertex3(bndBeingMadePts[0].Easting, bndBeingMadePts[0].Northing, 0);
-                    GL.Vertex3(pivot.Easting + (Math.Cos(pivot.Heading) * -mf.bnd.createBndOffset), pivot.Northing + (Math.Sin(pivot.Heading) * mf.bnd.createBndOffset), 0);
+                    GL.Vertex3(pivot.Easting + (Math.Cos(pivot.Heading) * -createBndOffset), pivot.Northing + (Math.Sin(pivot.Heading) * createBndOffset), 0);
                     GL.Vertex3(bndBeingMadePts[bndBeingMadePts.Count - 1].Easting, bndBeingMadePts[bndBeingMadePts.Count - 1].Northing, 0);
                 }
                 GL.End();
@@ -80,94 +85,198 @@ namespace AgOpenGPS
                 GL.End();
             }
         }
+
+        public void DrawGeoFenceLines()
+        {
+            for (int i = 0; i < Boundaries.Count; i++)
+            {
+                GL.Color3(0.96555f, 0.1232f, 0.50f);
+
+                if (Boundaries[i].Northingmin < mf.worldGrid.NorthingMax && Boundaries[i].Northingmax > mf.worldGrid.NorthingMin)
+                {
+                    if (Boundaries[i].Eastingmin < mf.worldGrid.EastingMax && Boundaries[i].Eastingmax > mf.worldGrid.EastingMin)
+                    {
+                        GL.Begin(PrimitiveType.LineLoop);
+                        for (int h = 0; h < Boundaries[i].geoFenceLine.Count; h++) GL.Vertex3(Boundaries[i].geoFenceLine[h].Easting, Boundaries[i].geoFenceLine[h].Northing, 0);
+                        GL.End();
+                    }
+                }
+            }
+        }
+
+        public void DrawTurnLines()
+        {
+            GL.LineWidth(mf.lineWidth);
+            GL.Color3(0.3555f, 0.6232f, 0.20f);
+            //GL.PointSize(2);
+
+            for (int i = 0; i < Boundaries.Count; i++)
+            {
+                if (Boundaries[i].isDriveAround || Boundaries[i].isDriveThru) continue;
+
+                ////draw the turn line oject
+                if (Boundaries[i].turnLine.Count < 1) return;
+
+                if (Boundaries[i].Northingmin > mf.worldGrid.NorthingMax || Boundaries[i].Northingmax < mf.worldGrid.NorthingMin) continue;
+                if (Boundaries[i].Eastingmin > mf.worldGrid.EastingMax || Boundaries[i].Eastingmax < mf.worldGrid.EastingMin) continue;
+
+                GL.Begin(PrimitiveType.LineLoop);
+                for (int h = 0; h < Boundaries[i].turnLine.Count; h++) GL.Vertex3(Boundaries[i].turnLine[h].Easting, Boundaries[i].turnLine[h].Northing, 0);
+                GL.End();
+            }
+        }
     }
 
-    public partial class CBoundaryLines
+
+
+    public class Polygon
     {
-        //list of coordinates of boundary line
-        public List<Vec3> bndLine = new List<Vec3>();
+        public List<Vec2> Points = new List<Vec2>();
         public List<int> Indexer = new List<int>();
+
+        public bool ResetPoints, ResetIndexer;
+        public int BufferPoints = int.MinValue, BufferIndex = int.MinValue, BufferPointsCnt = 0, BufferIndexCnt = 0;
+        
+        public void DrawPolygon(bool Triangles)
+        {
+            if (BufferPoints == int.MinValue || ResetPoints)
+            {
+                if (BufferPoints == int.MinValue) GL.GenBuffers(1, out BufferPoints);
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferPoints);
+                GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(Points.Count * 16), Points.ToArray(), BufferUsageHint.StaticDraw);
+                BufferPointsCnt = Points.Count;
+                ResetPoints = false;
+            }
+
+            if (Triangles && BufferIndex == int.MinValue || ResetIndexer)
+            {
+                if (BufferIndex == int.MinValue) GL.GenBuffers(1, out BufferIndex);
+                GL.BindBuffer(BufferTarget.ElementArrayBuffer, BufferIndex);
+                GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(Indexer.Count * 4), Indexer.ToArray(), BufferUsageHint.StaticDraw);
+
+                BufferIndexCnt = Indexer.Count;
+                ResetIndexer = false;
+            }
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, BufferPoints);
+            GL.VertexPointer(2, VertexPointerType.Double, 16, IntPtr.Zero);
+            GL.EnableClientState(ArrayCap.VertexArray);
+
+            if (Triangles)
+            {
+                GL.BindBuffer(BufferTarget.ElementArrayBuffer, BufferIndex);
+                GL.DrawElements(PrimitiveType.Triangles, BufferIndexCnt, DrawElementsType.UnsignedInt, IntPtr.Zero);
+            }
+            else
+            {
+                GL.DrawArrays(PrimitiveType.LineLoop, 0, BufferPointsCnt);
+            }
+        }
+    }
+
+    public class CBoundaryLines
+    {
+        public Polygon Polygon = new Polygon();
+        public List<Polygon> HeadLand = new List<Polygon>();
+        public List<Polygon> Template = new List<Polygon>();
+
+
+        public List<Vec2> geoFenceLine = new List<Vec2>();
+        public List<Vec2> GeoCalcList = new List<Vec2>();
+
+        public List<Vec2> turnLine = new List<Vec2>();
+        public List<Vec2> CalcList = new List<Vec2>();
 
         public double Northingmin, Northingmax, Eastingmin, Eastingmax;
 
         //area variable
-        public double Area = 0;
+        public double Area = double.PositiveInfinity;
 
         //boundary variables
         public bool isDriveAround, isDriveThru;
 
         public void FixBoundaryLine(CancellationToken ct)
         {
-            double area = Math.Abs(bndLine.PolygonArea(ct, true) / 2.0);
-
-            double Multiplier = Math.Max(1, Math.Min((area / 10000) / 10000, 10));
-
+            double area = Math.Abs(Polygon.Points.PolygonArea(ct, true) / 2.0);
             if (!ct.IsCancellationRequested) Area = area;
 
-            double MinDist = 2 * Multiplier, MaxDist = 4 * Multiplier;
-
+            double Multiplier = Math.Max(1, Math.Min((Area / 10000) / 10000, 10));
+            double MinDist = 2 * Multiplier;
             double distance;
-            for (int i = 0; i < bndLine.Count; i++)
-            {
-                int j = (i == bndLine.Count - 1) ? 0 : i + 1;
 
+            int k = Polygon.Points.Count - 1;
+            for (int l = 0; l < Polygon.Points.Count; k = l++)
+            {
+                if (k < 0) k = Polygon.Points.Count - 1;
                 //make sure distance isn't too small between points on turnLine
-                distance = Glm.Distance(bndLine[i], bndLine[j]);
+                distance = Glm.Distance(Polygon.Points[k], Polygon.Points[l]);
                 if (distance < MinDist)
                 {
-                    bndLine.RemoveAt(j);
-                    i--;
-                }
-                else if (distance > MaxDist)//make sure distance isn't too big between points on turnLine
-                {
-                    double northing = bndLine[i].Northing / 2 + bndLine[j].Northing / 2;
-                    double easting = bndLine[i].Easting / 2 + bndLine[j].Easting / 2;
-                    double heading = bndLine[i].Heading / 2 + bndLine[j].Heading / 2;
-
-                    if (j == 0) bndLine.Add(new Vec3(northing, easting, heading));
-                    else bndLine.Insert(j, new Vec3(northing, easting, heading));
-                    i--;
+                    Polygon.Points.RemoveAt(k);
+                    l--;
+                    Polygon.ResetPoints = true;
                 }
             }
-        }
-
-        public void DrawBoundaryLine()
-        {
-            ////draw the perimeter line so far
-            if (bndLine.Count < 1) return;
-            GL.LineWidth(2);
-
-            GL.Begin(PrimitiveType.LineLoop);
-            for (int h = 0; h < bndLine.Count; h++) GL.Vertex3(bndLine[h].Easting, bndLine[h].Northing, 0);
-            GL.End();
-        }
-
-        public void DrawBoundaryBackBuffer()
-        {
-            GL.Begin(PrimitiveType.Triangles);
-            for (int j = 0; j < Indexer.Count; j++)
-            {
-                GL.Vertex3(bndLine[Indexer[j]].Easting, bndLine[Indexer[j]].Northing, 0);
-            }
-            GL.End();
         }
 
         public void BoundaryMinMax(CancellationToken ct)
         {
-            if (bndLine.Count > 0)
+            if (Polygon.Points.Count > 0)
             {
-                Northingmin = Northingmax = bndLine[0].Northing;
-                Eastingmin = Eastingmax = bndLine[0].Easting;
-
-                for (int i = 0; i < bndLine.Count; i++)
+                Northingmin = Northingmax = Polygon.Points[0].Northing;
+                Eastingmin = Eastingmax = Polygon.Points[0].Easting;
+                for (int j = 0; j < Polygon.Points.Count; j++)
                 {
                     if (ct.IsCancellationRequested) break;
-                    if (Northingmin > bndLine[i].Northing) Northingmin = bndLine[i].Northing;
-                    if (Northingmax < bndLine[i].Northing) Northingmax = bndLine[i].Northing;
-                    if (Eastingmin > bndLine[i].Easting) Eastingmin = bndLine[i].Easting;
-                    if (Eastingmax < bndLine[i].Easting) Eastingmax = bndLine[i].Easting;
+                    if (Northingmin > Polygon.Points[j].Northing) Northingmin = Polygon.Points[j].Northing;
+                    if (Northingmax < Polygon.Points[j].Northing) Northingmax = Polygon.Points[j].Northing;
+                    if (Eastingmin > Polygon.Points[j].Easting) Eastingmin = Polygon.Points[j].Easting;
+                    if (Eastingmax < Polygon.Points[j].Easting) Eastingmax = Polygon.Points[j].Easting;
                 }
             }
+        }
+
+        public bool IsPointInTurnArea(Vec2 TestPoint)
+        {
+            if (CalcList.Count < 3) return false;
+            int j = turnLine.Count - 1;
+            bool oddNodes = false;
+
+            if (TestPoint.Northing > Northingmin || TestPoint.Northing < Northingmax || TestPoint.Easting > Eastingmin || TestPoint.Easting < Eastingmax)
+            {
+                //test against the constant and multiples list the test point
+                for (int i = 0; i < turnLine.Count; j = i++)
+                {
+                    if ((turnLine[i].Northing < TestPoint.Northing && turnLine[j].Northing >= TestPoint.Northing)
+                    || (turnLine[j].Northing < TestPoint.Northing && turnLine[i].Northing >= TestPoint.Northing))
+                    {
+                        oddNodes ^= ((TestPoint.Northing * CalcList[i].Northing) + CalcList[i].Easting < TestPoint.Easting);
+                    }
+                }
+            }
+            return oddNodes; //true means inside.
+        }
+
+        public bool IsPointInGeoFenceArea(Vec3 TestPoint)
+        {
+            if (GeoCalcList.Count < 3 || GeoCalcList.Count < geoFenceLine.Count) return false;
+
+            int j = geoFenceLine.Count - 1;
+            bool oddNodes = false;
+
+            if (TestPoint.Northing > Northingmin || TestPoint.Northing < Northingmax || TestPoint.Easting > Eastingmin || TestPoint.Easting < Eastingmax)
+            {
+                //test against the constant and multiples list the test point
+                for (int i = 0; i < geoFenceLine.Count; j = i++)
+                {
+                    if ((geoFenceLine[i].Northing < TestPoint.Northing && geoFenceLine[j].Northing >= TestPoint.Northing)
+                    || (geoFenceLine[j].Northing < TestPoint.Northing && geoFenceLine[i].Northing >= TestPoint.Northing))
+                    {
+                        oddNodes ^= ((TestPoint.Northing * GeoCalcList[i].Northing) + GeoCalcList[i].Easting < TestPoint.Easting);
+                    }
+                }
+            }
+            return oddNodes; //true means inside.
         }
     }
 }

@@ -44,7 +44,6 @@ namespace AgOpenGPS
 
         //serial port AutoSteer is connected to
         public SerialPort spAutoSteer = new SerialPort(portNameAutoSteer, baudRateAutoSteer, Parity.None, 8, StopBits.One);
-        int spAutoSteerIdx = 0;
         public byte[] spAutoSteerBytes = new byte[3] { 0x7F, 0, 0 };
 
         int UBXMessageIdx = 0;
@@ -262,9 +261,8 @@ namespace AgOpenGPS
             {
                 try
                 {
-                    //read whatever is in port
                     string sentence = spGPS.ReadExisting();
-                    BeginInvoke((MethodInvoker)(() => pn.rawBuffer += sentence));
+                    BeginInvoke((MethodInvoker)(() => pn.ParseNMEA(sentence)));
                 }
                 catch (Exception ex)
                 {

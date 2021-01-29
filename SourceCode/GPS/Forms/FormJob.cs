@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Windows.Forms;
 
@@ -21,33 +19,15 @@ namespace AgOpenGPS
             btnJobOpen.Text = String.Get("gsOpen");
             btnJobNew.Text = String.Get("gsNew");
             btnJobResume.Text = String.Get("gsResume");
-
             label1.Text = String.Get("gsLastFieldUsed");
-
-            this.Text = String.Get("gsStartNewField");
-        }
-
-        private void BtnJobNew_Click(object sender, EventArgs e)
-        {
-            DialogResult = DialogResult.Retry;
-            Close();
-        }
-
-        private void BtnJobResume_Click(object sender, EventArgs e)
-        {
-            DialogResult = DialogResult.OK;
-            Close();
+            Text = String.Get("gsStartNewField");
         }
 
         private void FormJob_Load(object sender, EventArgs e)
         {
-            //check if directory and file exists, maybe was deleted etc
-            if (string.IsNullOrEmpty(mf.currentFieldDirectory)) btnJobResume.Enabled = false;
-            string directoryName = mf.fieldsDirectory + mf.currentFieldDirectory + "\\";
+            string fileAndDirectory = mf.fieldsDirectory + Properties.Settings.Default.setF_CurrentDir + "\\Boundary.txt";
 
-            string fileAndDirectory = directoryName + "Field.txt";
-
-            if (!File.Exists(fileAndDirectory))
+            if (string.IsNullOrEmpty(Properties.Settings.Default.setF_CurrentDir) && !File.Exists(fileAndDirectory))
             {
                 textBox1.Text = "";
                 btnJobResume.Enabled = false;
@@ -57,19 +37,16 @@ namespace AgOpenGPS
             }
             else
             {
-                textBox1.Text = mf.currentFieldDirectory;
+                textBox1.Text = Properties.Settings.Default.setF_CurrentDir;
             }
         }
 
         private void BtnJobOpen_Click(object sender, EventArgs e)
         {
-            mf.filePickerFileAndDirectory = "";
-
             using (var form = new FormFilePicker(mf))
             {
                 var result = form.ShowDialog(mf);
 
-                //returns full field.txt file dir name
                 if (result == DialogResult.Yes)
                 {
                     DialogResult = result;
@@ -83,139 +60,36 @@ namespace AgOpenGPS
             string infieldList = "";
             int numFields = 0;
 
-            string[] dirs = Directory.GetDirectories(mf.fieldsDirectory);
-
-            foreach (string dir in dirs)
+            for (int i = 0; i < mf.Fields.Count; i++)
             {
-                double northingOffset = 0;
-                double eastingOffset = 0;
-                
-                string fieldDirectory = Path.GetFileName(dir);
-                string filename = dir + "\\Field.txt";
-                string line;
-
-                //make sure directory has a field.txt in it
-                if (File.Exists(filename))
+                if (mf.Fields[i].Eastingmin <= mf.pn.fix.Easting && mf.Fields[i].Eastingmax >= mf.pn.fix.Easting && mf.Fields[i].Northingmin <= mf.pn.fix.Northing && mf.Fields[i].Northingmax >= mf.pn.fix.Northing)
                 {
-                    using (StreamReader reader = new StreamReader(filename))
+                    bool oddNodes = false;
+                    int k = mf.Fields[i].Polygon.Points.Count - 1;
+                    for (int j = 0; j < mf.Fields[i].Polygon.Points.Count; j++)
                     {
-                        try
+                        if ((mf.Fields[i].Polygon.Points[j].Northing < mf.pn.fix.Northing && mf.Fields[i].Polygon.Points[k].Northing >= mf.pn.fix.Northing
+                        || mf.Fields[i].Polygon.Points[k].Northing < mf.pn.fix.Northing && mf.Fields[i].Polygon.Points[j].Northing >= mf.pn.fix.Northing)
+                        && (mf.Fields[i].Polygon.Points[j].Easting <= mf.pn.fix.Easting || mf.Fields[i].Polygon.Points[k].Easting <= mf.pn.fix.Easting))
                         {
-                            //Date time line
-                            for (int i = 0; i < 4; i++)
-                            {
-                                line = reader.ReadLine();
-                            }
-
-                            //start positions
-                            if (!reader.EndOfStream)
-                            {
-                                line = reader.ReadLine();
-                                string[] offs = line.Split(',');
-
-                                eastingOffset = (double.Parse(offs[0], CultureInfo.InvariantCulture));
-                                northingOffset = (double.Parse(offs[1], CultureInfo.InvariantCulture));
-                            }
+                            oddNodes ^= (mf.Fields[i].Polygon.Points[j].Easting + (mf.pn.fix.Northing - mf.Fields[i].Polygon.Points[j].Northing) /
+                            (mf.Fields[i].Polygon.Points[k].Northing - mf.Fields[i].Polygon.Points[j].Northing) * (mf.Fields[i].Polygon.Points[k].Easting - mf.Fields[i].Polygon.Points[j].Easting) < mf.pn.fix.Easting);
                         }
-                        catch (Exception)
-                        {
-                            mf.TimedMessageBox(2000, String.Get("gsFieldFileIsCorrupt"), String.Get("gsChooseADifferentField"));
-                        }
+                        k = j;
                     }
 
-                    //grab the boundary
-                    filename = dir + "\\Boundary.txt";
-
-                    if (!File.Exists(filename))
-                        filename = dir + "\\Boundary.Tmp";
-
-                    if (File.Exists(filename))
+                    if (oddNodes)
                     {
-                        List<Vec3> pointList = new List<Vec3>();
-
-                        using (StreamReader reader = new StreamReader(filename))
-                        {
-                            try
-                            {
-
-                                //read header
-                                line = reader.ReadLine();//Boundary
-
-                                if (!reader.EndOfStream) //empty boundary field
-                                {
-                                    //True or False OR points from older boundary files
-                                    line = reader.ReadLine();
-
-
-                                    //Check for older boundary files, then above line string is num of points
-                                    if (line == "True" || line == "False")
-                                    {
-                                        line = reader.ReadLine(); //number of points
-                                    }
-
-                                    //Check for latest boundary files, then above line string is num of points
-                                    if (line == "True" || line == "False")
-                                    {
-                                        line = reader.ReadLine(); //number of points
-                                    }
-
-                                    int numPoints = int.Parse(line);
-                                    Vec2[] linePoints = new Vec2[numPoints];
-
-                                    if (numPoints > 0)
-                                    {
-                                        //load the line
-                                        for (int i = 0; i < numPoints; i++)
-                                        {
-                                            line = reader.ReadLine();
-                                            string[] words = line.Split(',');
-                                            Vec2 vecPt = new Vec2(
-                                            double.Parse(words[1], CultureInfo.InvariantCulture) + northingOffset,
-                                                double.Parse(words[0], CultureInfo.InvariantCulture) + eastingOffset);
-
-                                            linePoints[i] = vecPt;
-                                        }
-
-                                        int j = linePoints.Length - 1;
-                                        bool oddNodes = false;
-                                        double x = mf.pn.actualEasting;
-                                        double y = mf.pn.actualNorthing;
-
-                                        for (int i = 0; i < linePoints.Length; i++)
-                                        {
-                                            if ((linePoints[i].Northing < y && linePoints[j].Northing >= y
-                                            || linePoints[j].Northing < y && linePoints[i].Northing >= y)
-                                            && (linePoints[i].Easting <= x || linePoints[j].Easting <= x))
-                                            {
-                                                oddNodes ^= (linePoints[i].Easting + (y - linePoints[i].Northing) /
-                                                (linePoints[j].Northing - linePoints[i].Northing) * (linePoints[j].Easting - linePoints[i].Easting) < x);
-                                            }
-                                            j = i;
-                                        }
-
-                                        if (oddNodes)
-                                        {
-                                            numFields++;
-                                            if (string.IsNullOrEmpty(infieldList))
-                                                infieldList += Path.GetFileName(dir);
-                                            else
-                                                infieldList += "," + Path.GetFileName(dir);
-                                        }
-                                    }
-                                }
-                            }
-                            catch (Exception)
-                            {
-                            }
-                        }
+                        numFields++;
+                        if (string.IsNullOrEmpty(infieldList))
+                            infieldList += Path.GetFileName(mf.Fields[i].Dir);
+                        else
+                            infieldList += "," + Path.GetFileName(mf.Fields[i].Dir);
                     }
                 }
             }
-
             if (!string.IsNullOrEmpty(infieldList))
             {
-                mf.filePickerFileAndDirectory = "";
-
                 if (numFields > 1)
                 {
                     using (var form = new FormDrivePicker(mf, this, infieldList))
@@ -230,7 +104,7 @@ namespace AgOpenGPS
                 }
                 else // 1 field found
                 {
-                    mf.filePickerFileAndDirectory = mf.fieldsDirectory + infieldList + "\\Field.txt";
+                    mf.currentFieldDirectory = infieldList;
                     DialogResult = DialogResult.Yes;
                     Close();
                 }
@@ -238,6 +112,15 @@ namespace AgOpenGPS
             else //no fields found
             {
                 mf.TimedMessageBox(2000, String.Get("gsNoFieldsFound"), String.Get("gsFieldNotOpen"));
+            }
+        }
+
+        private void BtnJobResume_Click(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.setF_CurrentDir))
+            {
+                mf.currentFieldDirectory = Properties.Settings.Default.setF_CurrentDir;
+                DialogResult = DialogResult.Yes;
             }
         }
     }

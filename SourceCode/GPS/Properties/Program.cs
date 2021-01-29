@@ -45,7 +45,6 @@ namespace AgOpenGPS
                     string AppID = "AgIO";
                     SetCurrentProcessExplicitAppUserModelID(AppID);
 
-
                     Application.EnableVisualStyles();
                     Application.SetCompatibleTextRenderingDefault(false);
                     Application.Run(new FormLoop());

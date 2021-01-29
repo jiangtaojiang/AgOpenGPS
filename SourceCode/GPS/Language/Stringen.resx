@@ -408,6 +408,9 @@
   <data name="gsDateWillBeAdded" xml:space="preserve">
     <value>** Date will be added</value>
   </data>
+  <data name="gsAddDate" xml:space="preserve">
+    <value>Add Date?</value>
+  </data>
   <data name="gsDayMode" xml:space="preserve">
     <value>Day Mode</value>
   </data>

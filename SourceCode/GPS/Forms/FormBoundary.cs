@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace AgOpenGPS
@@ -14,9 +16,6 @@ namespace AgOpenGPS
         private double viewableRatio = 0, thumbHeight = 0, ScrollCalc = 0;
         private readonly int SliderMaxHeight = 0, SliderStartY = 0, SliderStartX = 0;
         private readonly int rowheight = 0,formheight = 0;
-
-        private double easting, northing, latK, lonK;
-
 
         public FormBoundary(Form callingForm)
         {
@@ -70,14 +69,14 @@ namespace AgOpenGPS
             }
 
 
-            BoundaryPanel.Height = mf.bnd.bndArr.Count * rowheight;
+            BoundaryPanel.Height = mf.bnd.Boundaries.Count * rowheight;
 
             BoundaryPanel.SetBounds(0, -Position, BoundaryPanel.Width, BoundaryPanel.Height);
         }
 
         public void UpdateChart()
         {
-            contentHeight = rowheight * mf.bnd.bndArr.Count;
+            contentHeight = rowheight * mf.bnd.Boundaries.Count;
             viewableRatio = panel1.Size.Height / (double)contentHeight;
             thumbHeight = (SliderMaxHeight * viewableRatio < 100) ? 100 : (SliderMaxHeight * viewableRatio);
 
@@ -108,7 +107,7 @@ namespace AgOpenGPS
 
             int inner = 1;
 
-            for (int i = 0; i < mf.bnd.bndArr.Count; i++)
+            for (int i = 0; i < mf.bnd.Boundaries.Count; i++)
             {
                 Control aa = BoundaryPanel.GetControlFromPosition(0, i);
                 if (aa == null)
@@ -182,8 +181,8 @@ namespace AgOpenGPS
                         c.Enabled = false;
                         d.Enabled = false;
 
-                        mf.bnd.bndArr[i].isDriveThru = false;
-                        mf.bnd.bndArr[i].isDriveAround = false;
+                        mf.bnd.Boundaries[i].isDriveThru = false;
+                        mf.bnd.Boundaries[i].isDriveAround = false;
                         c.Text = String.Get("gsNo");
                         d.Text = String.Get("gsNo");
                     }
@@ -195,13 +194,13 @@ namespace AgOpenGPS
                     }
 
                     if (mf.isMetric)
-                        b.Text = Math.Round(mf.bnd.bndArr[i].Area * 0.0001, 2) + " Ha";
+                        b.Text = Math.Round(mf.bnd.Boundaries[i].Area * 0.0001, 2) + " Ha";
                     else
-                        b.Text = Math.Round(mf.bnd.bndArr[i].Area * 0.000247105, 2) + " Ac";
+                        b.Text = Math.Round(mf.bnd.Boundaries[i].Area * 0.000247105, 2) + " Ac";
 
 
-                    c.Text = String.Get(mf.bnd.bndArr[i].isDriveThru ? "gsYes" : "gsNo");
-                    d.Text = String.Get(mf.bnd.bndArr[i].isDriveAround ? "gsYes" : "gsNo");
+                    c.Text = String.Get(mf.bnd.Boundaries[i].isDriveThru ? "gsYes" : "gsNo");
+                    d.Text = String.Get(mf.bnd.Boundaries[i].isDriveAround ? "gsYes" : "gsNo");
 
 
                     BoundaryPanel.Controls.Add(a, 0, i);
@@ -244,8 +243,8 @@ namespace AgOpenGPS
             if (sender is Button b)
             {
                 int pos = BoundaryPanel.GetRow(b);
-                mf.bnd.bndArr[pos].isDriveThru = !mf.bnd.bndArr[pos].isDriveThru;
-                b.Text = String.Get(mf.bnd.bndArr[pos].isDriveThru ? "gsYes" : "gsNo");
+                mf.bnd.Boundaries[pos].isDriveThru = !mf.bnd.Boundaries[pos].isDriveThru;
+                b.Text = String.Get(mf.bnd.Boundaries[pos].isDriveThru ? "gsYes" : "gsNo");
             }
         }
 
@@ -254,8 +253,8 @@ namespace AgOpenGPS
             if (sender is Button b)
             {
                 int pos = BoundaryPanel.GetRow(b);
-                mf.bnd.bndArr[pos].isDriveAround = !mf.bnd.bndArr[pos].isDriveAround;
-                b.Text = String.Get(mf.bnd.bndArr[pos].isDriveAround ? "gsYes" : "gsNo");
+                mf.bnd.Boundaries[pos].isDriveAround = !mf.bnd.Boundaries[pos].isDriveAround;
+                b.Text = String.Get(mf.bnd.Boundaries[pos].isDriveAround ? "gsYes" : "gsNo");
             }
         }
 
@@ -284,10 +283,10 @@ namespace AgOpenGPS
 
                 if (mf.bnd.boundarySelected == 0)
                 { 
-                    if (mf.bnd.bndArr.Count == 1) BtnDelete.Enabled = true;
+                    if (mf.bnd.Boundaries.Count == 1) BtnDelete.Enabled = true;
                     else BtnDelete.Enabled = false;
                 }
-                else if (mf.bnd.bndArr.Count > mf.bnd.boundarySelected) BtnDelete.Enabled = true;
+                else if (mf.bnd.Boundaries.Count > mf.bnd.boundarySelected) BtnDelete.Enabled = true;
 
                 else BtnDelete.Enabled = false;
             }
@@ -318,16 +317,16 @@ namespace AgOpenGPS
             {
                 BtnDelete.Enabled = false;
 
-                if (mf.bnd.bndArr.Count > mf.bnd.boundarySelected)
+                if (mf.bnd.Boundaries.Count > mf.bnd.boundarySelected)
                 {
 
 
 
                     RemoveArbitraryRow(BoundaryPanel, mf.bnd.boundarySelected);
 
-                    BoundaryPanel.Height = Math.Max(formheight, mf.bnd.bndArr.Count * rowheight);
-                    mf.StartTasks(mf.bnd.bndArr[mf.bnd.boundarySelected], mf.bnd.boundarySelected, TaskName.Delete);
-                    if (mf.bnd.bndArr.Count == 1) mf.bnd.BtnHeadLand = false;
+                    BoundaryPanel.Height = Math.Max(formheight, mf.bnd.Boundaries.Count * rowheight);
+                    mf.StartTasks(mf.bnd.Boundaries[mf.bnd.boundarySelected], mf.bnd.boundarySelected, TaskName.Delete);
+                    if (mf.bnd.Boundaries.Count == 1) mf.bnd.BtnHeadLand = false;
 
                     mf.StartTasks(null, 6, TaskName.Save);
 
@@ -376,7 +375,7 @@ namespace AgOpenGPS
 
 
 
-            contentHeight = rowheight * (mf.bnd.bndArr.Count-1);
+            contentHeight = rowheight * (mf.bnd.Boundaries.Count-1);
             viewableRatio = panel1.Size.Height / (double)contentHeight;
             thumbHeight = (SliderMaxHeight * viewableRatio < 100) ? 100 : (SliderMaxHeight * viewableRatio);
 
@@ -412,9 +411,9 @@ namespace AgOpenGPS
         {
             Position = 0;
 
-            for (int i = 0; i < mf.bnd.bndArr.Count; i++)
+            for (int i = 0; i < mf.bnd.Boundaries.Count; i++)
             {
-                mf.StartTasks(mf.bnd.bndArr[i], i, TaskName.Delete);
+                mf.StartTasks(mf.bnd.Boundaries[i], i, TaskName.Delete);
             }
 
             mf.StartTasks(null, 6, TaskName.Save);
@@ -422,7 +421,7 @@ namespace AgOpenGPS
             BoundaryPanel.Controls.Clear();
             BoundaryPanel.RowStyles.Clear();
             BoundaryPanel.RowCount = 0;
-            BoundaryPanel.Height = Math.Max(formheight, mf.bnd.bndArr.Count * rowheight);
+            BoundaryPanel.Height = Math.Max(formheight, mf.bnd.Boundaries.Count * rowheight);
             UpdateScroll(0);
 
             BtnDelete.Enabled = false;
@@ -461,11 +460,11 @@ namespace AgOpenGPS
             if (mf.bnd.bndBeingMadePts.Count > 2)
             {
                 CBoundaryLines newbnd = new CBoundaryLines();
-                newbnd.bndLine.AddRange(mf.bnd.bndBeingMadePts);
-                mf.bnd.bndArr.Add(newbnd);
-                BoundaryPanel.Height = Math.Max(formheight , mf.bnd.bndArr.Count * rowheight);
+                newbnd.Polygon.Points = mf.bnd.bndBeingMadePts.ToList();
+                mf.bnd.Boundaries.Add(newbnd);
+                BoundaryPanel.Height = Math.Max(formheight , mf.bnd.Boundaries.Count * rowheight);
 
-                mf.StartTasks(newbnd, mf.bnd.bndArr.Count - 1, TaskName.Boundary);
+                mf.StartTasks(newbnd, mf.bnd.Boundaries.Count - 1, TaskName.Boundary);
                 mf.StartTasks(null, 1, TaskName.Save);
             }
 
@@ -576,7 +575,7 @@ namespace AgOpenGPS
         {
             //save new copy of kml with selected flag and view in GoogleEarth
           
-            mf.FileMakeKMLFromCurrentPosition(mf.pn.latitude, mf.pn.longitude);
+            mf.FileMakeKMLFromCurrentPosition(mf.Latitude, mf.Longitude);
             System.Diagnostics.Process.Start(mf.fieldsDirectory + mf.currentFieldDirectory + "\\CurrentPosition.KML");
             Close();
         }
@@ -585,6 +584,7 @@ namespace AgOpenGPS
         {
             timer1.Enabled = true;
 
+            BtnPausePlay.Image = mf.bnd.isOkToAddPoints ? Properties.Resources.boundaryPause : Properties.Resources.BoundaryRecord;
 
             mf.bnd.isBndBeingMade = true;
 
@@ -731,7 +731,7 @@ namespace AgOpenGPS
                 string line;
                 string coordinates = null;
                 int startIndex;
-                int i = mf.bnd.bndArr.Count;
+                int i = mf.bnd.Boundaries.Count;
 
                 using (System.IO.StreamReader reader = new System.IO.StreamReader(fileAndDirectory))
                 {
@@ -774,37 +774,53 @@ namespace AgOpenGPS
                                 if (numberSets.Length > 2)
                                 {
                                     CBoundaryLines newbnd = new CBoundaryLines();
-
+                                    double LatMax = 0, LatMin = 0, LonMax = 0, LonMin = 0;
+                                    List<Vec2> test = new List<Vec2>();
+                                    bool Start = true;
                                     foreach (var item in numberSets)
                                     {
                                         string[] fix = item.Split(',');
                                         if (fix.Length > 1)
                                         {
-                                            double.TryParse(fix[0], NumberStyles.Float, CultureInfo.InvariantCulture, out lonK);
-                                            double.TryParse(fix[1], NumberStyles.Float, CultureInfo.InvariantCulture, out latK);
-                                            double[] xy = mf.pn.DecDeg2UTM(latK, lonK);
+                                            double Lon = double.Parse(fix[0], CultureInfo.InvariantCulture);
+                                            double Lat = double.Parse(fix[1], CultureInfo.InvariantCulture);
 
-                                            //match new fix to current position
-                                            easting = xy[0] - mf.pn.utmEast;
-                                            northing = xy[1] - mf.pn.utmNorth;
-
-                                            double east = easting;
-                                            double nort = northing;
-
-                                            //fix the azimuth error
-                                            easting = (Math.Cos(-mf.pn.convergenceAngle) * east) - (Math.Sin(-mf.pn.convergenceAngle) * nort);
-                                            northing = (Math.Sin(-mf.pn.convergenceAngle) * east) + (Math.Cos(-mf.pn.convergenceAngle) * nort);
-
-                                            //add the point to boundary
-                                            Vec3 bndPt = new Vec3(northing, easting, 0);
-                                            newbnd.bndLine.Add(bndPt);
+                                            if (i == 0)
+                                            {
+                                                if (Start)
+                                                {
+                                                    LatMax = LatMin = Lat;
+                                                    LonMax = LonMin = Lon;
+                                                    Start = false;
+                                                }
+                                                if (LatMax < Lat) LatMax = Lat;
+                                                if (LatMin > Lat) LatMin = Lat;
+                                                if (LonMax < Lon) LonMax = Lon;
+                                                if (LonMin > Lon) LonMin = Lon;
+                                                test.Add(new Vec2(Lon, Lat));
+                                            }
+                                            else
+                                            {
+                                                mf.ConvertWGS84ToLocal(Lat, Lon, out double Northing, out double Easting);
+                                                newbnd.Polygon.Points.Add(new Vec2(Easting, Northing));
+                                            }
                                         }
                                     }
 
-                                    mf.bnd.bndArr.Add(newbnd);
+                                    if (i == 0)
+                                    {
+                                        mf.SetPlaneToLocal((LatMax + LatMin) /2, (LonMax + LonMin) /2);
 
-                                    mf.StartTasks(newbnd, mf.bnd.bndArr.Count - 1, TaskName.Boundary);
+                                        for (int j = 0; j < test.Count; j++)
+                                        {
+                                            mf.ConvertWGS84ToLocal(test[j].Northing, test[j].Easting, out double Northing, out double Easting);
+                                            newbnd.Polygon.Points.Add(new Vec2(Easting, Northing));
+                                        }
+                                    }
 
+                                    mf.bnd.Boundaries.Add(newbnd);
+                                    mf.StartTasks(newbnd, mf.bnd.Boundaries.Count - 1, TaskName.Boundary);
+                                    
                                     coordinates = "";
                                     i++;
                                 }

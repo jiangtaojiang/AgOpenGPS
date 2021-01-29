@@ -101,16 +101,10 @@ namespace AgOpenGPS
                 Vec3 pivot = mf.pivotAxlePos;
 
                 mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Mode = Gmode.AB;
-                mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading = Math.Atan2(pivot.Easting - mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0].Easting, pivot.Northing - mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0].Northing);
+                mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading = Math.Atan2(pivot.Easting - mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0].Easting, pivot.Northing - mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0].Northing );
                 if (mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading < 0) mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading += Glm.twoPI;
 
-                mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[1] = new Vec3(pivot.Northing, pivot.Easting, mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading);
-
-                Vec3 Seg0 = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0];
-                Seg0.Heading = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading;
-
-                mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0] = Seg0;
-
+                mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[1] = new Vec2(pivot.Easting, pivot.Northing);
                 tboxHeading.Text = Glm.ToDegrees(mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading).ToString("0.00##");
             }
         }
@@ -126,10 +120,6 @@ namespace AgOpenGPS
                     {
                         tboxHeading.Text = form.ReturnValue.ToString("0.00##");
                         mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading = Math.Round(Glm.ToRadians(form.ReturnValue),6);
-
-                        Vec3 Seg0 = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0];
-                        Seg0.Heading = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading;
-                        mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0] = Seg0;
 
                         mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[1] = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments[0];
                         mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Mode = Gmode.Heading;
@@ -259,7 +249,6 @@ namespace AgOpenGPS
                 mf.Guidance.Lines[idx].Mode = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Mode;
                 mf.Guidance.Lines[idx].Heading = mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Heading;
 
-                mf.Guidance.smooList.CalculateHeading(mf.Guidance.Lines[idx].Mode == Gmode.Boundary, CancellationToken.None);
                 mf.Guidance.Lines[idx].Segments.AddRange(mf.Guidance.smooList);
 
                 mf.Guidance.isSmoothWindowOpen = false;

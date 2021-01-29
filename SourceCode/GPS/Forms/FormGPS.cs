@@ -45,7 +45,7 @@ namespace AgOpenGPS
         public bool isJobStarted = false, isAutoSteerBtnOn, isLidarBtnOn = true;
 
         //if we are saving a file
-        public bool isSavingFile = false, isLogNMEA = false, isLogElevation = false;
+        public bool isLogNMEA = false, isLogElevation = false;
 
         //texture holders
         public uint[] texture = new uint[13];
@@ -68,9 +68,6 @@ namespace AgOpenGPS
         public int pbarSteer, pbarMachine, pbarUDP;
 
         public double BoundarySpacing = 2;
-
-        //used by filePicker Form to return picked file and directory
-        public string filePickerFileAndDirectory;
 
         //the autoManual drive button. Assume in Auto
         public bool isInAutoDrive = true;
@@ -98,21 +95,6 @@ namespace AgOpenGPS
         public CNMEA pn;
 
         /// <summary>
-        /// TramLine class for boundary and settings
-        /// </summary>
-        public CTram tram;
-
-        /// <summary>
-        /// The grid for collision Avoidance
-        /// </summary>
-        public CMazeGrid mazeGrid;
-
-        /// <summary>
-        /// Auto Headland YouTurn
-        /// </summary>
-        public CYouTurn yt;
-
-        /// <summary>
         /// Our vehicle only
         /// </summary>
         public CVehicle vehicle;
@@ -131,11 +113,6 @@ namespace AgOpenGPS
         /// The boundary object
         /// </summary>
         public CBoundary bnd;
-
-        /// <summary>
-        /// The boundary object
-        /// </summary>
-        public CTurn turn;
 
         /// <summary>
         /// The entry and exit sequences, functions, actions
@@ -163,16 +140,12 @@ namespace AgOpenGPS
         public CFieldData fd;
 
         /// <summary>
-        /// GeoFence around everything you cannot cross
-        /// </summary>
-        public CGeoFence gf;
-
-        /// <summary>
         /// The font class
         /// </summary>
         public CFont font;
         public bool LeftMouseDownOnOpenGL { get; set; }
         public double FrameTime { get; set; } = 0;
+        public double FrameTime2 { get; set; } = 0;
         public double HzTime { get; set; } = 8;
         public SoundPlayer SndBoundaryAlarm { get; set; }
         public int MinuteCounter { get; set; } = 1;
@@ -207,6 +180,7 @@ namespace AgOpenGPS
                 }
                 else return null;
             };
+
             //winform initialization
             InitializeComponent();
             Timer.Tick += new EventHandler(TimerRepeat_Tick);
@@ -227,23 +201,11 @@ namespace AgOpenGPS
 
             Guidance = new CGuidance(this);
 
-            //instance of tram
-            tram = new CTram(this);
-
-            //new instance of auto headland turn
-            yt = new CYouTurn(this);
-
             //module communication
             mc = new CModuleComm(this);
 
             //boundary object
             bnd = new CBoundary(this);
-
-            //Turn object
-            turn = new CTurn(this);
-
-            //GeoFence
-            gf = new CGeoFence(this);
 
             //headland entry/exit sequences
             seq = new CSequence(this);
@@ -259,9 +221,6 @@ namespace AgOpenGPS
 
             //fieldData all in one place
             fd = new CFieldData(this);
-
-            //The grid for obstacle avoidance
-            mazeGrid = new CMazeGrid(this);
 
             // Add Message Event handler for Form decoupling from client socket thread
             updateRTCM_DataEvent = new UpdateRTCM_Data(OnAddMessage);
@@ -348,7 +307,7 @@ namespace AgOpenGPS
             {
                 if (camera.zoomValue <= 20) camera.zoomValue += camera.zoomValue * 0.02;
                 else camera.zoomValue += camera.zoomValue * 0.01;
-                if (camera.zoomValue > 220) camera.zoomValue = 220;
+                if (camera.zoomValue > 440) camera.zoomValue = 440;
                 camera.camSetDistance = camera.zoomValue * camera.zoomValue * -1;
             }
             else
@@ -364,12 +323,20 @@ namespace AgOpenGPS
 
                 camera.camSetDistance = camera.zoomValue * camera.zoomValue * -1;
             }
-            SetZoom();
+            SetZoom(camera.camSetDistance);
         }
 
         //Initialize items before the form Loads or is visible
         private void FormGPS_Load(object sender, EventArgs e)
         {
+            if (Properties.Settings.Default.setDisplay_isTermsOn)
+            {
+                SetLanguage((object)Properties.Settings.Default.setF_culture, null);
+
+                Form form = new Form_First(this);
+                form.ShowDialog(this);
+            }
+
             MouseWheel += ZoomByMouseWheel;
 
             //remembered window position
@@ -382,20 +349,17 @@ namespace AgOpenGPS
 
             if (Properties.Settings.Default.setDisplay_isStartFullScreen)
             {
-                this.WindowState = FormWindowState.Normal;
-                this.FormBorderStyle = FormBorderStyle.None;
-                this.WindowState = FormWindowState.Maximized;
+                WindowState = FormWindowState.Normal;
+                FormBorderStyle = FormBorderStyle.None;
+                WindowState = FormWindowState.Maximized;
                 btnFullScreen.BackgroundImage = Properties.Resources.WindowNormal;
                 isFullScreen = true;
             }
             else
-            {
                 isFullScreen = false;
-            }
 
             vehicleFileName = Properties.Vehicle.Default.setVehicle_vehicleName;
             toolFileName = Properties.Vehicle.Default.setVehicle_toolName;
-
 
             currentVersionStr = Application.ProductVersion.ToString(CultureInfo.InvariantCulture);
 
@@ -406,20 +370,13 @@ namespace AgOpenGPS
             inoVersionInt = inoV;
             inoVersionStr = inoV.ToString();
 
-
-            if (Properties.Settings.Default.setDisplay_isTermsOn)
-            {
-                SetLanguage((object)Properties.Settings.Default.setF_culture, null);
-
-                Form form = new Form_First(this);
-                form.ShowDialog(this);
-            }
-
             // load all the gui settings in gui.designer.cs
             LoadSettings();
 
             //Calculate total width and each section width
             LoadTools();
+
+            NMEAWatchdog.Enabled = true;
         }
 
         //form is closing so tidy up and save settings
@@ -471,8 +428,7 @@ namespace AgOpenGPS
             Properties.Settings.Default.setDisplay_panelSimLocation = panelSim.Location;
 
             Properties.Settings.Default.Save();
-
-
+            
             List<Task> tasks = new List<Task>();
             for (int j = 0; j < TaskList.Count; j++)
             {
@@ -544,10 +500,10 @@ namespace AgOpenGPS
 
         public void SwapDirection(bool Reset = true)
         {
-            if (!yt.isYouTurnTriggered)
+            if (!Guidance.isYouTurnTriggered)
             {
-                yt.isYouTurnRight = !yt.isYouTurnRight;
-                if (Reset) yt.ResetCreatedYouTurn();
+                Guidance.isYouTurnRight = !Guidance.isYouTurnRight;
+                if (Reset) Guidance.ResetCreatedYouTurn();
             }
         }
 
@@ -639,7 +595,6 @@ namespace AgOpenGPS
             //CurveLine
             btnGuidance.Image = Properties.Resources.CurveOff;
 
-
             Guidance.BtnGuidanceOn = false;
             Guidance.isOkToAddPoints = false;
             Guidance.isEditing = false;
@@ -649,12 +604,11 @@ namespace AgOpenGPS
             Guidance.ResetABLine = true;
             btnCycleLines.Text = String.Get("gsOff");
 
-
-
-
             //TramLines
-            tram.displayMode = 0;
-            tram.TramList.Clear();
+            Guidance.TramDisplayMode = 0;
+            Guidance.TramList.Clear();
+            Guidance.BoundaryTram.Clear();
+            Guidance.ResetBoundaryTram = true;
 
             //turn off headland
             btnHeadlandOnOff.Image = Properties.Resources.HeadlandOff;
@@ -662,11 +616,9 @@ namespace AgOpenGPS
             btnHydLift.Image = Properties.Resources.HydraulicLiftOff;
             vehicle.BtnHydLiftOn = false;
 
-            pn.latStart = 0;
-            pn.lonStart = 0;
+            SetPlaneToLocal(Latitude, Longitude);
 
-            bnd.bndArr.Clear();
-
+            bnd.Boundaries.Clear();
             PatchSaveList.Clear();
             PatchDrawList.Clear();
 
@@ -675,7 +627,7 @@ namespace AgOpenGPS
 
             for (int i = 0; i < Tools.Count; i++)
             {
-                for (int j = 0; j< Tools[i].Sections.Count; j++)
+                for (int j = 0; j < Tools[i].Sections.Count; j++)
                 {
                     //clear the section lists
                     Tools[i].Sections[j].triangleList.Clear();
@@ -713,37 +665,32 @@ namespace AgOpenGPS
             //bring up dialog if no job active, close job if one is
             if (!isJobStarted)
             {
-                DialogResult result;
                 using (var form = new FormJob(this))
                 {
-                    result = form.ShowDialog(this);
-                }
+                    DialogResult result = form.ShowDialog(this);
 
-                if (result == DialogResult.Retry)
-                {
-                    //ask for a directory name
-                    using (var form2 = new FormFieldDir(this))
+                    if (result == DialogResult.Retry)
                     {
-                        form2.ShowDialog(this);
+                        //ask for a directory name
+                        using (var form2 = new FormFieldDir(this))
+                        {
+                            form2.ShowDialog(this);
+                        }
+                    }
+                    else if (result == DialogResult.Yes)
+                    {
+                        FileOpenField();
+                        Text = "AgOpenGPS - " + currentFieldDirectory;
                     }
                 }
-                else if (result == DialogResult.OK)
-                {
-                    FileOpenField("Resume");
-                }
-                else if (result == DialogResult.Yes)
-                    FileOpenField(filePickerFileAndDirectory);
-
-                Text = "AgOpenGPS - " + currentFieldDirectory;
-
             }
 
             //close the current job and ask how to or if to save
             else
             {
-                using (var form = new FormSaveOrNot(false, this))
+                using (FormSaveOrNot form = new FormSaveOrNot(false, this))
                 {
-                    var result = form.ShowDialog(this);
+                    DialogResult result = form.ShowDialog(this);
                     if (result != DialogResult.Ignore)
                     {
                         Properties.Settings.Default.setF_CurrentDir = currentFieldDirectory;
@@ -752,7 +699,7 @@ namespace AgOpenGPS
                         if (result == DialogResult.Yes)
                         {
                             //ask for a directory name
-                            using (var form2 = new FormSaveAs(this))
+                            using (FormSaveAs form2 = new FormSaveAs(this))
                             {
                                 form2.ShowDialog(this);
                             }
@@ -805,7 +752,7 @@ namespace AgOpenGPS
                     }
                     else
                     {
-                        if (!Tools[i].Sections[j].IsMappingOn && isMapping && Tools[i].Sections[j].MappingOnTimer > 0)
+                        if (!Tools[i].Sections[j].IsMappingOn && Tools[i].Sections[j].MappingOnTimer > 0)
                         {
                             if (Tools[i].Sections[j].MappingOnTimer > 0) Tools[i].Sections[j].MappingOnTimer--;
                             if (Tools[i].Sections[j].MappingOnTimer == 0)
@@ -987,27 +934,19 @@ namespace AgOpenGPS
         }
 
         //take the distance from object and convert to camera data
-        public void SetZoom()
+        public void SetZoom(double Distance)
         {
             //match grid to cam distance and redo perspective
-            if (camera.camSetDistance <= -20000) camera.gridZoom = 4000;
-            else if (camera.camSetDistance >= -20000 && camera.camSetDistance < -10000) camera.gridZoom = 4000;
-            else if (camera.camSetDistance >= -10000 && camera.camSetDistance < -5000) camera.gridZoom = 2000;
-            else if (camera.camSetDistance >= -5000 && camera.camSetDistance < -2000) camera.gridZoom = 1000;
-            else if (camera.camSetDistance >= -2000 && camera.camSetDistance < -1000) camera.gridZoom = 400;
-            else if (camera.camSetDistance >= -1000 && camera.camSetDistance < -500) camera.gridZoom = 200;
-            else if (camera.camSetDistance >= -500 && camera.camSetDistance < -250) camera.gridZoom = 100;
-            else if (camera.camSetDistance >= -250 && camera.camSetDistance < -150) camera.gridZoom = 50;
-            else if (camera.camSetDistance >= -150 && camera.camSetDistance < -50) camera.gridZoom = 30;
-            else if (camera.camSetDistance >= -50 && camera.camSetDistance < -1) camera.gridZoom = 10;
-            //1.216 2.532
-
-            oglMain.MakeCurrent();
-            GL.MatrixMode(MatrixMode.Projection);
-            GL.LoadIdentity();
-            Matrix4 mat = Matrix4.CreatePerspectiveFieldOfView((float)fovy, oglMain.AspectRatio, 1f, (float)(camDistanceFactor * camera.camSetDistance));
-            GL.LoadMatrix(ref mat);
-            GL.MatrixMode(MatrixMode.Modelview);
+            if (Distance <= -20000) camera.gridZoom = 4000;
+            else if (Distance >= -20000 && Distance < -10000) camera.gridZoom = 4000;
+            else if (Distance >= -10000 && Distance < -5000) camera.gridZoom = 2000;
+            else if (Distance >= -5000 && Distance < -2000) camera.gridZoom = 1000;
+            else if (Distance >= -2000 && Distance < -1000) camera.gridZoom = 400;
+            else if (Distance >= -1000 && Distance < -500) camera.gridZoom = 200;
+            else if (Distance >= -500 && Distance < -250) camera.gridZoom = 100;
+            else if (Distance >= -250 && Distance < -150) camera.gridZoom = 50;
+            else if (Distance >= -150 && Distance < -50) camera.gridZoom = 30;
+            else if (Distance >= -50 && Distance < -1) camera.gridZoom = 10;
         }
 
         //All the files that need to be saved when closing field or app
@@ -1131,7 +1070,6 @@ namespace AgOpenGPS
             {
                 //set up file and folder if it doesn't exist
                 const string strFileName = "Error Log.txt";
-                //string strPath = Application.StartupPath;
 
                 //Write out the error appending to existing
                 File.AppendAllText(baseDirectory + "\\" + strFileName, strErrorText + " - " +

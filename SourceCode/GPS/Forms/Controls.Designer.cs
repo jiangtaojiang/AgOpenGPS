@@ -21,7 +21,7 @@ namespace AgOpenGPS
 
         private void goPathMenu_Click(object sender, EventArgs e)
         {
-            if (bnd.bndArr.Count == 0)
+            if (bnd.Boundaries.Count == 0)
             {
                 TimedMessageBox(2000, String.Get("gsNoBoundary"), String.Get("gsCreateABoundaryFirst"));
                 return;
@@ -29,7 +29,7 @@ namespace AgOpenGPS
 
             isAutoSteerBtnOn = false;
             btnAutoSteer.Image = Properties.Resources.AutoSteerOff;
-            if (yt.isYouTurnBtnOn) btnAutoYouTurn.PerformClick();
+            if (Guidance.isYouTurnBtnOn) btnAutoYouTurn.PerformClick();
 
             snapLeftBigStrip.Enabled = false;
             snapRightBigStrip.Enabled = false;
@@ -120,16 +120,15 @@ namespace AgOpenGPS
             System.Media.SystemSounds.Question.Play();
 
             //new direction so reset where to put turn diagnostic
-            //yt.ResetCreatedYouTurn();
+            Guidance.ResetCreatedYouTurn();
 
             if (isAutoSteerBtnOn)
             {
                 isAutoSteerBtnOn = false;
                 btnAutoSteer.Image = Properties.Resources.AutoSteerOff;
-                //if (yt.isYouTurnBtnOn) btnAutoYouTurn.PerformClick();
                 mc.Send_AutoSteerButton[5] = 0x00;
                 UpdateSendDataText("Auto Steer Button: State Off");
-                SendData(mc.Send_AutoSteerButton, false);//reset pulsecount = true & Autosteer off
+                SendData(mc.Send_AutoSteerButton, false);
             }
             else
             {
@@ -139,7 +138,7 @@ namespace AgOpenGPS
                     btnAutoSteer.Image = Properties.Resources.AutoSteerOn;
                     mc.Send_AutoSteerButton[5] = 0x01;
                     UpdateSendDataText("Auto Steer Button: State On");
-                    SendData(mc.Send_AutoSteerButton, false);//reset pulsecount = true & Autosteer on
+                    SendData(mc.Send_AutoSteerButton, false);
                 }
                 else
                 {
@@ -150,7 +149,7 @@ namespace AgOpenGPS
 
         private void BtnMakeLinesFromBoundary_Click(object sender, EventArgs e)
         {
-            if (bnd.bndArr.Count == 0)
+            if (bnd.Boundaries.Count == 0)
             {
                 TimedMessageBox(2000, String.Get("gsNoBoundary"), String.Get("gsCreateABoundaryFirst"));
                 return;
@@ -181,7 +180,7 @@ namespace AgOpenGPS
                 Guidance.ExtraGuidanceLines.Clear();
                 Properties.Settings.Default.LastGuidanceLine = Guidance.CurrentLine;
                 Properties.Settings.Default.Save();
-                yt.ResetYouTurn();
+                Guidance.ResetYouTurn();
 
                 if (Guidance.CurrentLine == -1)
                 {
@@ -237,21 +236,11 @@ namespace AgOpenGPS
             YouTurnButtons(true);
         }
 
-        private void btnContour_Click(object sender, EventArgs e)
-        {
-            snapToCurrent.Enabled = Guidance.BtnGuidanceOn;
-
-            if (Guidance.BtnGuidanceOn)
-            {
-                YouTurnButtons(true);
-            }
-        }
-
-        private void btnContourPriority_Click(object sender, EventArgs e)
+        private void btnSnapCurrent_Click(object sender, EventArgs e)
         {
             if (Guidance.BtnGuidanceOn)
             {
-                Guidance.MoveLine(Guidance.CurrentLine, Guidance.isSameWay ? Guidance.distanceFromRefLine : -Guidance.distanceFromRefLine);
+                Guidance.MoveLine(Guidance.CurrentLine, Guidance.isSameWay ? -Guidance.distanceFromRefLine : Guidance.distanceFromRefLine);
                 Guidance.distanceFromRefLine = 0;
             }
             else
@@ -262,14 +251,14 @@ namespace AgOpenGPS
 
         private void btnSnapRight_Click(object sender, EventArgs e)
         {
-            yt.ResetCreatedYouTurn();
+            Guidance.ResetCreatedYouTurn();
             double dist = 0.01 * Properties.Vehicle.Default.SnapOffsetDistance;
             Guidance.MoveLine(Guidance.CurrentLine, Guidance.isSameWay ? dist : -dist);
         }
 
         private void btnSnapLeft_Click(object sender, EventArgs e)
         {
-            yt.ResetCreatedYouTurn();
+            Guidance.ResetCreatedYouTurn();
             double dist = 0.01 * Properties.Vehicle.Default.SnapOffsetDistance;
             Guidance.MoveLine(Guidance.CurrentLine, Guidance.isSameWay ? -dist : dist);
 
@@ -417,7 +406,7 @@ namespace AgOpenGPS
                 else camera.zoomValue += camera.zoomValue * 0.05;
                 if (camera.zoomValue > 220) camera.zoomValue = 220;
                 camera.camSetDistance = camera.zoomValue * camera.zoomValue * -1;
-                SetZoom();
+                SetZoom(camera.camSetDistance);
             }
             else if (TimerMode == 1)
             {
@@ -425,7 +414,7 @@ namespace AgOpenGPS
                 { if ((camera.zoomValue -= camera.zoomValue * 0.1) < 6.0) camera.zoomValue = 6.0; }
                 else { if ((camera.zoomValue -= camera.zoomValue * 0.05) < 6.0) camera.zoomValue = 6.0; }
                 camera.camSetDistance = camera.zoomValue * camera.zoomValue * -1;
-                SetZoom();
+                SetZoom(camera.camSetDistance);
             }
             else if (TimerMode == 2)
             {
@@ -543,7 +532,7 @@ namespace AgOpenGPS
         private void btnFlag_Click(object sender, EventArgs e)
         {
             int nextflag = flagPts.Count + 1;
-            CFlag flagPt = new CFlag(pn.latitude, pn.longitude, pn.fix.Easting, pn.fix.Northing, fixHeading, flagColor, nextflag, (nextflag).ToString());
+            CFlag flagPt = new CFlag(Latitude, Longitude, pn.fix.Easting, pn.fix.Northing, fixHeading, flagColor, nextflag, (nextflag).ToString());
             flagPts.Add(flagPt);
             FileSaveFlags();
 
@@ -567,12 +556,12 @@ namespace AgOpenGPS
 
         private void btnAutoYouTurn_Click(object sender, EventArgs e)
         {
-            yt.rowSkipsWidth = Properties.Vehicle.Default.set_youSkipWidth;
-            yt.ResetYouTurn();
+            Guidance.rowSkipsWidth = Properties.Vehicle.Default.set_youSkipWidth;
+            Guidance.ResetYouTurn();
 
-            if (!yt.isYouTurnBtnOn)
+            if (!Guidance.isYouTurnBtnOn)
             {
-                if (bnd.bndArr.Count == 0)
+                if (bnd.Boundaries.Count == 0)
                 {
                     TimedMessageBox(2000, String.Get("gsNoBoundary"), String.Get("gsCreateABoundaryFirst"));
                     return;
@@ -580,12 +569,12 @@ namespace AgOpenGPS
                 if (Guidance.BtnGuidanceOn && !isAutoSteerBtnOn)
                     btnAutoSteer.PerformClick();
 
-                yt.isYouTurnBtnOn = true;
+                Guidance.isYouTurnBtnOn = true;
                 btnAutoYouTurn.Image = Properties.Resources.Youturn80;
             }
             else
             {
-                yt.isYouTurnBtnOn = false;
+                Guidance.isYouTurnBtnOn = false;
                 btnAutoYouTurn.Image = Properties.Resources.YouTurnNo;
             }
         }
@@ -594,21 +583,21 @@ namespace AgOpenGPS
         private void autoUTurnHeadLiftStrip_Click(object sender, EventArgs e)
         {
             
-            if (bnd.bndArr.Count > 0)
+            if (bnd.Boundaries.Count > 0)
             {
                 bnd.BtnHeadLand = !bnd.BtnHeadLand;
                 if (bnd.BtnHeadLand) btnHeadlandOnOff.Image = Properties.Resources.HeadlandOn;
                 else btnHeadlandOnOff.Image = Properties.Resources.HeadlandOff;
             }
 
-            if (!yt.isYouTurnBtnOn)  btnAutoYouTurn.PerformClick();
+            if (!Guidance.isYouTurnBtnOn)  btnAutoYouTurn.PerformClick();
 
             if (!vehicle.BtnHydLiftOn) btnHydLift.PerformClick();
         }
 
         private void btnHeadlandOnOff_Click(object sender, EventArgs e)
         {
-            if (bnd.bndArr[0].HeadLine.Count > 0)
+            if (bnd.Boundaries[0].HeadLand.Count > 0)
             {
                 bnd.BtnHeadLand = !bnd.BtnHeadLand;
             }
@@ -727,7 +716,7 @@ namespace AgOpenGPS
             btnReverseDirection.BackgroundImage = (sim.reverse = !sim.reverse) ? Properties.Resources.DnArrow64 : Properties.Resources.UpArrow64;
             sim.stepDistance = -sim.stepDistance;
 
-            yt.ResetYouTurn();
+            Guidance.ResetYouTurn();
         }
 
         private void btnSimSetSpeedToZero_Click(object sender, EventArgs e)
@@ -746,9 +735,9 @@ namespace AgOpenGPS
         //Options
         private void cboxpRowWidth_SelectedIndexChanged(object sender, EventArgs e)
         {
-            yt.rowSkipsWidth = cboxpRowWidth.SelectedIndex + 1;
-            yt.ResetCreatedYouTurn();
-            Properties.Vehicle.Default.set_youSkipWidth = yt.rowSkipsWidth;
+            Guidance.rowSkipsWidth = cboxpRowWidth.SelectedIndex + 1;
+            Guidance.ResetCreatedYouTurn();
+            Properties.Vehicle.Default.set_youSkipWidth = Guidance.rowSkipsWidth;
             Properties.Vehicle.Default.Save();
         }
 
@@ -895,7 +884,7 @@ namespace AgOpenGPS
         {
             var form = new FormYouTurn(this);
             form.ShowDialog(this);
-            cboxpRowWidth.SelectedIndex = yt.rowSkipsWidth - 1;
+            cboxpRowWidth.SelectedIndex = Guidance.rowSkipsWidth - 1;
         }
 
         private void toolstripAutoSteerConfig_Click_1(object sender, EventArgs e)
@@ -1069,7 +1058,7 @@ namespace AgOpenGPS
             if (camera.camSetDistance < -400) camera.camSetDistance = -75;
             else camera.camSetDistance = -3 * maxFieldDistance;
             if (camera.camSetDistance == 0) camera.camSetDistance = -2000;
-            SetZoom();
+            SetZoom(camera.camSetDistance);
         }
 
         private void topFieldViewToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1100,7 +1089,7 @@ namespace AgOpenGPS
 
         private void headlandToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (bnd.bndArr.Count == 0)
+            if (bnd.Boundaries.Count == 0)
             {
                 TimedMessageBox(2000, String.Get("gsNoBoundary"), String.Get("gsCreateABoundaryFirst"));
                 return;
@@ -1236,41 +1225,14 @@ namespace AgOpenGPS
             {
                 if (isJobStarted)
                 {
-                    FileOpenField("Resume");
+                    FileOpenField();
                 }
                 else
                 {
-                    
-                    pn.latitude = sim.latitude;
-                    pn.longitude = sim.longitude;
-                    
-                    double[] xy = pn.DecDeg2UTM(pn.latitude, pn.longitude);
-
-                    pn.actualEasting = xy[0];
-                    pn.actualNorthing = xy[1];
-
-                    //reset the offsets
-                    pn.utmEast = (int)pn.actualEasting;
-                    pn.utmNorth = (int)pn.actualNorthing;
-
-                    pn.fix.Easting = pn.actualEasting - pn.utmEast;
-                    pn.fix.Northing = pn.actualNorthing - pn.utmNorth;
-
-                    worldGrid.CheckWorldGrid(pn.fix.Northing, pn.fix.Easting);
-
-                    pn.zone = Math.Floor((pn.longitude + 180.0) * 0.16666666666666666666666666666667) + 1;
-
-                    //calculate the central meridian of current zone
-                    pn.centralMeridian = -177 + ((pn.zone - 1) * 6);
-
-                    //Azimuth Error - utm declination
-                    pn.convergenceAngle = Math.Atan(Math.Sin(Glm.ToRadians(pn.latitude)) * Math.Tan(Glm.ToRadians(pn.longitude - pn.centralMeridian)));
-                    
-
-
+                    SetPlaneToLocal(Latitude = sim.latitude, Longitude = sim.longitude);
                     for (int i = 0; i < totalFixSteps; i++)
                     {
-                        stepFixPts[i] = new Vec3(pn.fix.Northing, pn.fix.Easting, 0);
+                        stepFixPts[i] = new Vec3(pn.fix.Easting, pn.fix.Northing, 0);
                     }
                 }
 

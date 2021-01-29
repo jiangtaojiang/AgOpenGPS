@@ -4,6 +4,14 @@ namespace AgOpenGPS
 {
     public class CFieldData
     {
+        //constructor
+        public CFieldData(FormGPS _f)
+        {
+            mf = _f;
+            workedAreaTotal = 0;
+            workedAreaTotalUser = 0;
+            userSquareMetersAlarm = 0;
+        }
         private readonly FormGPS mf;
 
         //all the section area added up;
@@ -123,25 +131,17 @@ namespace AgOpenGPS
         public string WorkRateHectares { get { return (mf.Guidance.GuidanceWidth * mf.pn.speed * 0.1).ToString("N1"); } }
         public string WorkRateAcres { get { return (mf.Guidance.GuidanceWidth * mf.pn.speed * 0.2471).ToString("N1"); } }
 
-        //constructor
-        public CFieldData(FormGPS _f)
-        {
-            mf = _f;
-            workedAreaTotal = 0;
-            workedAreaTotalUser = 0;
-            userSquareMetersAlarm = 0;
-        }
 
         public void UpdateFieldBoundaryGUIAreas()
         {
-            if (mf.bnd.bndArr.Count > 0)
+            if (mf.bnd.Boundaries.Count > 0)
             {
-                areaOuterBoundary = mf.bnd.bndArr[0].Area;
+                areaOuterBoundary = mf.bnd.Boundaries[0].Area;
                 areaBoundaryOuterLessInner = areaOuterBoundary;
 
-                for (int i = 1; i < mf.bnd.bndArr.Count; i++)
+                for (int i = 1; i < mf.bnd.Boundaries.Count; i++)
                 {
-                    areaBoundaryOuterLessInner -= mf.bnd.bndArr[i].Area;
+                    areaBoundaryOuterLessInner -= mf.bnd.Boundaries[i].Area;
                 }
             }
             else
@@ -150,7 +150,6 @@ namespace AgOpenGPS
                 areaBoundaryOuterLessInner = 0;            
             }
             mf.CalculateMinMax();
-            mf.mazeGrid.BuildMazeGridArray();
         }
     }
 }

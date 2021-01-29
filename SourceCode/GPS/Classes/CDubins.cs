@@ -27,10 +27,10 @@ namespace AgOpenGPS
 
         private List<OneDubinsPath> pathDataList = new List<OneDubinsPath>();
 
-        private readonly List<Vec3> dubinsShortestPathList = new List<Vec3>();
+        private readonly List<Vec2> dubinsShortestPathList = new List<Vec2>();
 
         //takes 2 points and headings to create a path - returns list of vec3 points and headings
-        public List<Vec3> GenerateDubins(Vec3 _start, Vec3 _goal)
+        public List<Vec2> GenerateDubins(Vec3 _start, Vec3 _goal)
         {
             //positions and heading
             startPos.Easting = _start.Easting;
@@ -53,26 +53,16 @@ namespace AgOpenGPS
 
             if (pathDataList.Count > 0)
             {
-                int cnt = pathDataList[0].pathCoordinates.Count;
-                if (cnt > 1)
+                if (pathDataList[0].pathCoordinates.Count > 1)
                 {
-                    //calculate the heading for each point
-                    for (int i = 0; i < cnt - 1; i += 5)
-                    {
-                        Vec3 pt = new Vec3(pathDataList[0].pathCoordinates[i].Northing, pathDataList[0].pathCoordinates[i].Easting, 0)
-                        {
-                            Heading = Math.Atan2(pathDataList[0].pathCoordinates[i + 1].Easting - pathDataList[0].pathCoordinates[i].Easting,
-                            pathDataList[0].pathCoordinates[i + 1].Northing - pathDataList[0].pathCoordinates[i].Northing)
-                        };
-                        dubinsShortestPathList.Add(pt);
-                    }
+                    dubinsShortestPathList.AddRange(pathDataList[0].pathCoordinates);
                 }
             }
             return dubinsShortestPathList;
         }
 
         //takes 2 points and headings to create a path - returns list of vec3 points and headings
-        public List<Vec3> GenerateDubins(Vec3 _start, Vec3 _goal, CGeoFence fence)
+        public List<Vec2> GenerateDubins(Vec3 _start, Vec3 _goal, CBoundaryLines fence)
         {
             //positions and heading
             startPos.Easting = _start.Easting;
@@ -99,7 +89,7 @@ namespace AgOpenGPS
                     {
                         for (int j = 0; j < cnt; j++)
                         {
-                            if (!fence.IsPointInsideGeoFences(pathDataList[i].pathCoordinates[j]))
+                            if (!fence.IsPointInTurnArea(pathDataList[i].pathCoordinates[j]))
                             {
                                 pathDataList.RemoveAt(i);
                                 pathsCnt = pathDataList.Count;
@@ -113,19 +103,9 @@ namespace AgOpenGPS
 
             if (pathDataList.Count > 0)
             {
-                int cnt = pathDataList[0].pathCoordinates.Count;
-                if (cnt > 1)
+                if (pathDataList[0].pathCoordinates.Count > 1)
                 {
-                    //calculate the heading for each point
-                    for (int i = 0; i < cnt - 1; i += 5)
-                    {
-                        Vec3 pt = new Vec3(pathDataList[0].pathCoordinates[i].Northing, pathDataList[0].pathCoordinates[i].Easting, 0)
-                        {
-                            Heading = Math.Atan2(pathDataList[0].pathCoordinates[i + 1].Easting - pathDataList[0].pathCoordinates[i].Easting,
-                            pathDataList[0].pathCoordinates[i + 1].Northing - pathDataList[0].pathCoordinates[i].Northing)
-                        };
-                        dubinsShortestPathList.Add(pt);
-                    }
+                    dubinsShortestPathList.AddRange(pathDataList[0].pathCoordinates);
                 }
             }
             return dubinsShortestPathList;
@@ -403,23 +383,22 @@ namespace AgOpenGPS
         private void GetTotalPath(OneDubinsPath pathData)
         {
             //Store the waypoints of the final path here
-            List<Vec3> finalPath = new List<Vec3>();
+            List<Vec2> finalPath = new List<Vec2>();
 
             //Start position of the car
-            Vec3 currentPos = new Vec3(startPos.Northing, startPos.Easting, 0);
             //Start heading of the car
             double theta = startHeading;
 
             //We always have to add the first position manually
-            finalPath.Add(currentPos);
+            finalPath.Add(startPos);
 
             //How many line segments can we fit into this part of the path
 
             //First
-            int segments = (int)Math.Floor(pathData.length1 / CDubins.driveDistance);
+            int segments = (int)Math.Floor(pathData.length1 / driveDistance);
 
             DubinsMath.AddCoordinatesToPath(
-                ref currentPos,
+                ref startPos,
                 ref theta,
                 finalPath,
                 segments,
@@ -427,10 +406,10 @@ namespace AgOpenGPS
                 pathData.segment1TurningRight);
 
             //Second
-            segments = (int)Math.Floor(pathData.length2 / CDubins.driveDistance);
+            segments = (int)Math.Floor(pathData.length2 / driveDistance);
 
             DubinsMath.AddCoordinatesToPath(
-                ref currentPos,
+                ref startPos,
                 ref theta,
                 finalPath,
                 segments,
@@ -438,10 +417,10 @@ namespace AgOpenGPS
                 pathData.segment2TurningRight);
 
             //Third
-            segments = (int)Math.Floor(pathData.length3 / CDubins.driveDistance);
+            segments = (int)Math.Floor(pathData.length3 / driveDistance);
 
             DubinsMath.AddCoordinatesToPath(
-                ref currentPos,
+                ref startPos,
                 ref theta,
                 finalPath,
                 segments,
@@ -449,7 +428,7 @@ namespace AgOpenGPS
                 pathData.segment3TurningRight);
 
             //Add the final goal coordinate
-            finalPath.Add(new Vec3(goalPos.Northing, goalPos.Easting, 0));
+            finalPath.Add(goalPos);
 
             //Save the final path in the path data
             pathData.pathCoordinates.AddRange(finalPath);
@@ -511,8 +490,8 @@ namespace AgOpenGPS
             double zT2 = zT1 + dirVec.Northing;
 
             //The final coordinates of the tangent lines
-            startTangent = new Vec2(zT1, xT1);
-            goalTangent = new Vec2(zT2, xT2);
+            startTangent = new Vec2(xT1, zT1);
+            goalTangent = new Vec2(xT2, zT2);
         }
 
         //Inner tangent (RSL and LSR)
@@ -541,15 +520,15 @@ namespace AgOpenGPS
             double zT1_tmp = startCircle.Northing + (2.0 * CDubins.turningRadius * Math.Sin(theta));
 
             //The direction is between the new coordinate and the center of the target circle
-            Vec2 dirVec = goalCircle - new Vec2(zT1_tmp, xT1_tmp);
+            Vec2 dirVec = goalCircle - new Vec2(xT1_tmp, zT1_tmp);
 
             //The coordinates of the second tangent point is the
             double xT2 = xT1 + dirVec.Easting;
             double zT2 = zT1 + dirVec.Northing;
 
             //The final coordinates of the tangent lines
-            startTangent = new Vec2(zT1, xT1);
-            goalTangent = new Vec2(zT2, xT2);
+            startTangent = new Vec2(xT1, zT1);
+            goalTangent = new Vec2(xT2, zT2);
         }
 
         //Get the RLR or LRL tangent points
@@ -573,7 +552,7 @@ namespace AgOpenGPS
             //Calculate the position of the third circle
             double x = startCircle.Easting + (2 * CDubins.turningRadius * Math.Cos(theta));
             double z = startCircle.Northing + (2 * CDubins.turningRadius * Math.Sin(theta));
-            middleCircle = new Vec2(z, x);
+            middleCircle = new Vec2(x, z);
 
             //Calculate the tangent points
             Vec2 V2 = (startCircle - middleCircle).Normalize();
@@ -598,7 +577,7 @@ namespace AgOpenGPS
         }
 
         //Loops through segments of a path and add new coordinates to the final path
-        public static void AddCoordinatesToPath( ref Vec3 currentPos, ref double theta, List<Vec3> finalPath, int segments, bool isTurning, bool isTurningRight)
+        public static void AddCoordinatesToPath( ref Vec2 currentPos, ref double theta, List<Vec2> finalPath, int segments, bool isTurning, bool isTurningRight)
         {
             for (int i = 0; i <= segments; i++)
             {
@@ -640,7 +619,7 @@ namespace AgOpenGPS
         public PathType pathType;
 
         //The coordinates of the final path
-        public List<Vec3> pathCoordinates = new List<Vec3>();
+        public List<Vec2> pathCoordinates = new List<Vec2>();
 
         //Are we turning or driving straight in segment 2?
         public bool segment2Turning;

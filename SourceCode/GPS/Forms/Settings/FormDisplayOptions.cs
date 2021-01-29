@@ -94,7 +94,6 @@ namespace AgOpenGPS
                 mf.Decimals = 3;
             }
 
-
             Close();
         }
 

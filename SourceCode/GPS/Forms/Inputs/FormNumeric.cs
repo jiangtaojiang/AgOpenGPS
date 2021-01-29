@@ -308,6 +308,7 @@ namespace AgOpenGPS
                 {
                     //prefix the negative sign
                     tboxNumber.Text = "-" + tboxNumber.Text;
+                    tboxNumber.SelectionStart = tboxNumber.Text.Length;
                 }
                 else if (MinValue < 0)
                 {
@@ -340,7 +341,7 @@ namespace AgOpenGPS
                     lblMax.ForeColor = Color.Red;
                     return;
                 }
-                else if (MinValue <= 0 && tryNumber < MinValue)
+                else if (tryNumber < MinValue)
                 {
                     tboxNumber.Text = MinValue.ToString();
                     tboxNumber.SelectionStart = tboxNumber.Text.Length;

@@ -132,8 +132,8 @@ namespace AgOpenGPS
 
                         pn.satellitesTracked = Data[29];
 
-                        pn.longitude = (Data[30] | (Data[31] << 8) | (Data[32] << 16) | (Data[33] << 24)) * 0.0000001;//to deg
-                        pn.latitude = (Data[34] | (Data[35] << 8) | (Data[36] << 16) | (Data[37] << 24)) * 0.0000001;//to deg
+                        Longitude = (Data[30] | (Data[31] << 8) | (Data[32] << 16) | (Data[33] << 24)) * 0.0000001;//to deg
+                        Latitude = (Data[34] | (Data[35] << 8) | (Data[36] << 16) | (Data[37] << 24)) * 0.0000001;//to deg
 
                         //Height above ellipsoid
                         pn.altitude = (Data[38] | (Data[39] << 8) | (Data[40] << 16) | (Data[41] << 24)) * 0.001;//to meters
@@ -142,10 +142,8 @@ namespace AgOpenGPS
 
                         pn.hdop = (Data[46] | (Data[47] << 8) | (Data[48] << 16) | (Data[49] << 24)) * 0.01;
 
-                        if (pn.longitude != 0)
+                        if (Longitude != 0)
                         {
-                            pn.ToUTM_FixConvergenceAngle();
-
                             pn.speed = (Data[66] | (Data[67] << 8) | (Data[68] << 16) | (Data[69] << 24)) * 0.0036;//to km/h
 
                             if (vehicle.isReverse && pn.speed > 0) pn.speed *= -1;
@@ -154,7 +152,9 @@ namespace AgOpenGPS
                             pn.AverageTheSpeed();
 
                             recvSentenceSettings[2] = recvSentenceSettings[0];
-                            recvSentenceSettings[0] = "$UBX-PVT, Longitude = " + pn.longitude.ToString("N8", CultureInfo.InvariantCulture) + ", Latitude = " + pn.latitude.ToString("N8", CultureInfo.InvariantCulture) + ", Altitude = " + pn.altitude.ToString("N3", CultureInfo.InvariantCulture) + ", itow = " + itow.ToString();
+                            recvSentenceSettings[0] = "$UBX-PVT, Longitude = " + Longitude.ToString("N8", CultureInfo.InvariantCulture) + ", Latitude = " + Latitude.ToString("N8", CultureInfo.InvariantCulture) + ", Altitude = " + pn.altitude.ToString("N3", CultureInfo.InvariantCulture) + ", itow = " + itow.ToString();
+
+                            UpdateFixPosition();
                         }
                         else
                         {
@@ -209,7 +209,7 @@ namespace AgOpenGPS
             }
             else if (Data[0] == 0x24)//if it starts with a $, its an nmea sentence
             {
-                pn.rawBuffer += Encoding.ASCII.GetString(Data);
+                BeginInvoke((MethodInvoker)(() => pn.ParseNMEA(Encoding.ASCII.GetString(Data))));
 
                 if (isLogNMEA)
                 {
@@ -663,12 +663,7 @@ namespace AgOpenGPS
                             CK_B = (CK_B + CK_A) & 0xFF;
                         }
 
-                        if (InvokeRequired)
-                        {
-                        
-                        
-                        }
-                        if (localMsg[Length - 1] == CK_A)// && localMsg[Length - 1] == CK_B)
+                        if (localMsg[Length - 1] == CK_A && localMsg[Length - 1] == CK_B)
                             BeginInvoke((MethodInvoker)(() => UpdateRecvMessage(port, localMsg)));
                     }
                 }
@@ -683,15 +678,13 @@ namespace AgOpenGPS
         //keystrokes for easy and quick startup
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            //reset Sim
-            if (keyData == Keys.L)
+            
+            if (keyData == Keys.L)//reset Sim
             {
                 btnResetSim.PerformClick();
                 return true;
             }
-
-            //speed up
-            if (keyData == Keys.Up)
+            else if (keyData == Keys.Up)//speed up
             {
                 if (sim.stepDistance < 10) sim.stepDistance += 0.4;
                 else sim.stepDistance += 0.55;
@@ -699,9 +692,7 @@ namespace AgOpenGPS
                 hsbarStepDistance.Value = (int)(sim.stepDistance * 36);
                 return true;
             }
-
-            //slow down
-            if (keyData == Keys.Down)
+            else if (keyData == Keys.Down)//slow down
             {
                 if (sim.stepDistance < 10) sim.stepDistance -= 0.04;
                 else sim.stepDistance -= 0.055;
@@ -709,9 +700,7 @@ namespace AgOpenGPS
                 hsbarStepDistance.Value = (int)(sim.stepDistance * 36);
                 return true;
             }
-
-            //Stop
-            if (keyData == Keys.OemPeriod)
+            else if (keyData == Keys.OemPeriod)//Stop
             {
                 sim.stepDistance = 0;
                 hsbarStepDistance.Value = 0;
@@ -720,9 +709,7 @@ namespace AgOpenGPS
                 btnReverseDirection.BackgroundImage = Properties.Resources.UpArrow64;
                 return true;
             }
-
-            //turn right
-            if (keyData == Keys.Right)
+            else if (keyData == Keys.Right)//turn right
             {
                 sim.steerAngle += 2;
                 if (sim.steerAngle > 40) sim.steerAngle = 40;
@@ -732,9 +719,7 @@ namespace AgOpenGPS
                 hsbarSteerAngle.Value = (int)(10 * sim.steerAngle) + 400;
                 return true;
             }
-
-            //turn left
-            if (keyData == Keys.Left)
+            else if (keyData == Keys.Left)//turn left
             {
                 sim.steerAngle -= 2;
                 if (sim.steerAngle > 40) sim.steerAngle = 40;
@@ -744,9 +729,7 @@ namespace AgOpenGPS
                 hsbarSteerAngle.Value = (int)(10 * sim.steerAngle) + 400;
                 return true;
             }
-
-            //zero steering
-            if (keyData == Keys.OemQuestion)
+            else if (keyData == Keys.OemQuestion)
             {
                 sim.steerAngle = 0.0;
                 sim.steerAngleScrollBar = sim.steerAngle;
@@ -754,124 +737,67 @@ namespace AgOpenGPS
                 hsbarSteerAngle.Value = (int)(10 * sim.steerAngle) + 400;
                 return true;
             }
-
-            if (keyData == (Keys.F))
+            else if (keyData == (Keys.F))
             {
                 JobNewOpenResume();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.A)) //autosteer button on off
+            else if (keyData == (Keys.A)) //autosteer button on off
             {
                 btnAutoSteer.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            //if (keyData == (Keys.S)) //open the steer chart
-            //{
-            //    toolstripAutoSteerConfig.PerformClick();
-            //    return true;    // indicate that you handled this keystroke
-            //}
-
-            if (keyData == (Keys.S)) //open the steer chart
+            else if (keyData == (Keys.S)) //open the steer chart
             {
-                btnContourPriority.PerformClick();
+                btnSnapCurrent.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.C)) //open the steer chart
+            else if (keyData == (Keys.C)) //open the steer chart
             {
                 steerChartStripMenu.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.V)) //open the vehicle Settings
+            else if (keyData == (Keys.V)) //open the vehicle Settings
             {
                 toolstripVehicleConfig.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.U)) //open the UTurn Settings
+            else if (keyData == (Keys.U)) //open the UTurn Settings
             {
                 toolstripYouTurnConfig.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.NumPad1)) //auto section on off
+            else if (keyData == (Keys.NumPad1)) //auto section on off
             {
                 btnAutoSection.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.N)) //auto section on off
+            else if (keyData == (Keys.N)) //auto section on off
             {
                 btnAutoSection.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.NumPad0)) //auto section on off
+            else if (keyData == (Keys.NumPad0)) //auto section on off
             {
                 btnManualSection.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.M)) //auto section on off
+            else if (keyData == (Keys.M)) //auto section on off
             {
                 btnManualSection.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.G)) // Flag click
+            else if (keyData == (Keys.G)) // Flag click
             {
                 btnFlag.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.P)) // Snap/Prioritu click
+            else if (keyData == (Keys.P)) // Snap/Prioritu click
             {
-                btnContourPriority.PerformClick();
+                btnSnapCurrent.PerformClick();
                 return true;    // indicate that you handled this keystroke
             }
-
-            if (keyData == (Keys.H)) // Snap/Prioritu click
-            {
-                spAutoSteerBytes = new byte[10];
-
-                spAutoSteerBytes[0] = 0x7F;
-                spAutoSteerBytes[1] = 0xCA;
-                spAutoSteerBytes[2] = 0x04;
-                spAutoSteerBytes[3] = 0x00;
-
-
-                spAutoSteerBytes[4] = 0x7F;
-                spAutoSteerBytes[5] = 0xCF;
-                spAutoSteerBytes[6] = 0x06;
-                spAutoSteerBytes[7] = 0xFF;
-                spAutoSteerBytes[8] = 0x01;
-
-
-
-
-                if (spAutoSteerIdx == 0)
-                {
-                    spAutoSteerBytes[3] = 0x02;
-                    //spAutoSteerBytes[9] = 0x00;
-                    BeginInvoke((MethodInvoker)(() => UpdateRecvMessage(5, spAutoSteerBytes)));
-                    spAutoSteerIdx++;
-                }
-                else
-                {
-                    spAutoSteerBytes[3] = 0x00;
-                    //spAutoSteerBytes[9] = 0x01;
-                    BeginInvoke((MethodInvoker)(() => UpdateRecvMessage(5, spAutoSteerBytes)));
-                    spAutoSteerIdx = 0;
-                }
-
-
-                return true;    // indicate that you handled this keystroke
-            }
-
-            if (keyData == (Keys.F11)) // Full Screen click
+            else if (keyData == (Keys.F11)) // Full Screen click
             {
                 btnFullScreen.PerformClick();
                 return true;    // indicate that you handled this keystroke
@@ -1160,7 +1086,7 @@ namespace AgOpenGPS
                                 camera.zoomValue *= k;
                                 if (camera.zoomValue < 6.0) camera.zoomValue = 6;
                                 camera.camSetDistance = camera.zoomValue * camera.zoomValue * -1;
-                                SetZoom();
+                                SetZoom(camera.camSetDistance);
                             }
 
                             // Now we have to store new information as a starting

@@ -16,7 +16,7 @@ namespace AgOpenGPS
         private readonly FormGPS mf;
 
         private double fieldCenterX, fieldCenterY, maxFieldDistance, Offset;
-        private bool isA = true, isSet = false, ResetHeadLine = false, isDrawSections = false, Changed = false, NeedFixHeading = false;
+        private bool isA = true, isSet = false, ResetHeadLine = false, isDrawSections = false, Changed = false;
         private readonly bool HeadLand;
         private int Start = -1, End = -1, Boundary = -1, TemplateIndex;
         private readonly System.Windows.Forms.Timer Timer = new System.Windows.Forms.Timer();
@@ -135,7 +135,7 @@ namespace AgOpenGPS
 
         private void UpdateBoundary()
         {
-            if (mf.bnd.bndArr.Count > Boundary && Boundary >= 0)
+            if (mf.bnd.Boundaries.Count > Boundary && Boundary >= 0)
             {
                 CalculateMinMax();
                 oglSelf.Refresh();
@@ -176,22 +176,21 @@ namespace AgOpenGPS
 
         private void RebuildHeadLineTemplate(bool Reset)
         {
-            if (mf.bnd.bndArr.Count > Boundary && Boundary > -1)
+            if (mf.bnd.Boundaries.Count > Boundary && Boundary > -1)
             {
-                mf.bnd.bndArr[Boundary].Template.Clear();
-                if (!Reset && mf.bnd.bndArr[Boundary].HeadLine.Count > 0)
+                mf.bnd.Boundaries[Boundary].Template.Clear();
+                if (!Reset && mf.bnd.Boundaries[Boundary].HeadLand.Count > 0)
                 {
-                    mf.bnd.bndArr[Boundary].Template.AddRange(mf.bnd.bndArr[Boundary].HeadLine);
+                    mf.bnd.Boundaries[Boundary].Template.AddRange(mf.bnd.Boundaries[Boundary].HeadLand);
                     ResetHeadLine = false;
                 }
                 else
                 {
-                    mf.bnd.bndArr[Boundary].Template.Add(new List<Vec3>(mf.bnd.bndArr[Boundary].bndLine));
+                    mf.bnd.Boundaries[Boundary].Template.Add(new Polygon() {Points = new List<Vec2>(mf.bnd.Boundaries[Boundary].Polygon.Points)});
                     ResetHeadLine = true;
                 }
 
                 Changed = !Reset;
-                NeedFixHeading = !Reset;
 
                 UpdateBoundary();
             }
@@ -203,29 +202,30 @@ namespace AgOpenGPS
             isA = true;
             isSet = false;
             TemplateIndex = 0;
+            oglSelf.Refresh();
         }
 
         private void BtnDeletePoints_Click(object sender, EventArgs e)
         {
             ResetHeadLine = false;
             Changed = true;
-            NeedFixHeading = true;
-            if (TemplateIndex <= mf.bnd.bndArr[Boundary].Template.Count && Start >= 0 && End >= 0)
+            if (TemplateIndex <= mf.bnd.Boundaries[Boundary].Template.Count && Start >= 0 && End >= 0)
             {
                 int start2 = Start;
                 int end2 = End;
 
-                if (((mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count - end2 + start2) % mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count) < ((mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count - start2 + end2) % mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count)) { int index = start2; start2 = end2; end2 = index; }
+                if (((mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count - end2 + start2) % mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count) < ((mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count - start2 + end2) % mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count)) { int index = start2; start2 = end2; end2 = index; }
 
                 if (start2 > end2)
                 {
-                    mf.bnd.bndArr[Boundary].Template[TemplateIndex].RemoveRange(start2, mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count - start2);
-                    mf.bnd.bndArr[Boundary].Template[TemplateIndex].RemoveRange(0, end2);
+                    mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.RemoveRange(start2, mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count - start2);
+                    mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.RemoveRange(0, end2);
                 }
                 else
                 {
-                    mf.bnd.bndArr[Boundary].Template[TemplateIndex].RemoveRange(start2, end2 - start2);
+                    mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.RemoveRange(start2, end2 - start2);
                 }
+                if (mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count < 3) mf.bnd.Boundaries[Boundary].Template.RemoveAt(TemplateIndex);
             }
 
             Start = End = -1;
@@ -240,12 +240,6 @@ namespace AgOpenGPS
 
         private void BtnDoneManualMove_Click(object sender, EventArgs e)
         {
-            if (NeedFixHeading)
-            {
-                NeedFixHeading = false;
-                StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.FixHeading, Offset, TemplateIndex, Boundary, Start, End);
-            }
-
             Start = End = -1;
             if (Start == -1) lblStart.Text = "--";
             else lblStart.Text = Start.ToString();
@@ -258,23 +252,17 @@ namespace AgOpenGPS
 
         private void BtnTurnOffHeadland_Click(object sender, EventArgs e)
         {
-            mf.bnd.bndArr[Boundary].Template.Clear();
+            mf.bnd.Boundaries[Boundary].Template.Clear();
             Close();
         }
 
         private void BtnExit2_Click(object sender, EventArgs e)
         {
-            if (mf.bnd.bndArr.Count > Boundary && Boundary >= 0)
+            if (mf.bnd.Boundaries.Count > Boundary && Boundary >= 0)
             {
-                if (NeedFixHeading)
-                {
-                    NeedFixHeading = false;
-                    StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.FixHeading, Offset, TemplateIndex, Boundary, Start, End);
-                }
-
                 if (Changed || ResetHeadLine)
                 {
-                    StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.Save, 0, ResetHeadLine ? 1 : 0, 0, 0, 0);
+                    StartTask_FixHead(mf.bnd.Boundaries[Boundary], HeadLandTaskName.Save, 0, ResetHeadLine ? 1 : 0, 0, 0, 0);
                 }
                 ResetHeadLine = false;
             }
@@ -286,15 +274,38 @@ namespace AgOpenGPS
         {
             ResetHeadLine = true;
             RebuildHeadLineTemplate(true);
+
+            for (int j = 0; j < mf.TaskList.Count; j++)
+            {
+                if (mf.TaskList[j].Task.IsCompleted)
+                {
+                    mf.TaskList.RemoveAt(j);
+                    j--;
+                }
+                else if (mf.TaskList[j].Idx == mf.bnd.Boundaries[Boundary])
+                {
+                    if (mf.TaskList[j].TaskName == TaskName.Delete)
+                    {
+                        return;
+                    }
+                    else if (mf.TaskList[j].TaskName == TaskName.FixHead || mf.TaskList[j].TaskName == TaskName.FixBnd)
+                    {
+                        mf.TaskList[j].Token.Cancel();
+                    }
+                    else if (mf.TaskList[j].TaskName == TaskName.HeadLand)
+                    {
+                        mf.TaskList[j].Token.Cancel();
+                    }
+                }
+            }
         }
 
         private void BtnMoveUp_Click(object sender, EventArgs e)
         {
             ResetHeadLine = false;
-            if (mf.bnd.bndArr.Count > Boundary && Boundary >= 0)
+            if (mf.bnd.Boundaries.Count > Boundary && Boundary >= 0)
             {
-                NeedFixHeading = true;
-                StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.Up, Offset, TemplateIndex, Boundary, Start, End);
+                StartTask_FixHead(mf.bnd.Boundaries[Boundary], HeadLandTaskName.Up, Offset, TemplateIndex, Boundary, Start, End);
                 Changed = true;
             }
         }
@@ -302,10 +313,9 @@ namespace AgOpenGPS
         private void BtnMoveDown_Click(object sender, EventArgs e)
         {
             ResetHeadLine = false;
-            if (mf.bnd.bndArr.Count > Boundary && Boundary >= 0)
+            if (mf.bnd.Boundaries.Count > Boundary && Boundary >= 0)
             {
-                NeedFixHeading = true;
-                StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.Down, Offset, TemplateIndex, Boundary, Start, End);
+                StartTask_FixHead(mf.bnd.Boundaries[Boundary], HeadLandTaskName.Down, Offset, TemplateIndex, Boundary, Start, End);
                 Changed = true;
             }
         }
@@ -313,10 +323,9 @@ namespace AgOpenGPS
         private void BtnMoveLeft_Click(object sender, EventArgs e)
         {
             ResetHeadLine = false;
-            if (mf.bnd.bndArr.Count > Boundary && Boundary >= 0)
+            if (mf.bnd.Boundaries.Count > Boundary && Boundary >= 0)
             {
-                NeedFixHeading = true;
-                StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.Left, Offset, TemplateIndex, Boundary, Start, End);
+                StartTask_FixHead(mf.bnd.Boundaries[Boundary], HeadLandTaskName.Left, Offset, TemplateIndex, Boundary, Start, End);
                 Changed = true;
             }
         }
@@ -324,10 +333,9 @@ namespace AgOpenGPS
         private void BtnMoveRight_Click(object sender, EventArgs e)
         {
             ResetHeadLine = false;
-            if (mf.bnd.bndArr.Count > Boundary && Boundary >= 0)
+            if (mf.bnd.Boundaries.Count > Boundary && Boundary >= 0)
             {
-                NeedFixHeading = true;
-                StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.Right, Offset, TemplateIndex, Boundary, Start, End);
+                StartTask_FixHead(mf.bnd.Boundaries[Boundary], HeadLandTaskName.Right, Offset, TemplateIndex, Boundary, Start, End);
                 Changed = true;
             }
         }
@@ -335,9 +343,10 @@ namespace AgOpenGPS
         private void BtnMakeFixedHeadland_Click(object sender, EventArgs e)
         {
             ResetHeadLine = false;
-            if (mf.bnd.bndArr.Count > Boundary && Boundary >= 0)
+            if (mf.bnd.Boundaries.Count > Boundary && Boundary >= 0)
             {
-                StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.Offset, Offset, TemplateIndex, Boundary, Start, End);
+                StartTask_FixHead(mf.bnd.Boundaries[Boundary], HeadLandTaskName.Offset, Offset, TemplateIndex, Boundary, Start, End);
+                BtnDoneManualMove_Click(null, null);
                 Changed = true;
             }
 
@@ -436,11 +445,11 @@ namespace AgOpenGPS
             if (TimerMode == 0)
             {
 
-                if (TemplateIndex <= mf.bnd.bndArr[Boundary].Template.Count)
+                if (TemplateIndex <= mf.bnd.Boundaries[Boundary].Template.Count)
                 {
                     if (End != -1)
                     {
-                        End = (End + 1).Clamp(mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count);
+                        End = (End + 1).Clamp(mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count);
                     }
                     if (End == -1) lblEnd.Text = "--";
                     else lblEnd.Text = End.ToString();
@@ -449,11 +458,11 @@ namespace AgOpenGPS
             }
             else if (TimerMode == 1)
             {
-                if (TemplateIndex <= mf.bnd.bndArr[Boundary].Template.Count)
+                if (TemplateIndex <= mf.bnd.Boundaries[Boundary].Template.Count)
                 {
                     if (End != -1)
                     {
-                        End = (End - 1).Clamp(mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count);
+                        End = (End - 1).Clamp(mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count);
                     }
                     if (End == -1) lblEnd.Text = "--";
                     else lblEnd.Text = End.ToString();
@@ -461,11 +470,11 @@ namespace AgOpenGPS
             }
             else if (TimerMode == 2)
             {
-                if (TemplateIndex <= mf.bnd.bndArr[Boundary].Template.Count)
+                if (TemplateIndex <= mf.bnd.Boundaries[Boundary].Template.Count)
                 {
                     if (Start != -1)
                     {
-                        Start = (Start + 1).Clamp(mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count);
+                        Start = (Start + 1).Clamp(mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count);
                     }
                     if (Start == -1) lblStart.Text = "--";
                     else lblStart.Text = Start.ToString();
@@ -473,11 +482,11 @@ namespace AgOpenGPS
             }
             else if (TimerMode == 3)
             {
-                if (TemplateIndex <= mf.bnd.bndArr[Boundary].Template.Count)
+                if (TemplateIndex <= mf.bnd.Boundaries[Boundary].Template.Count)
                 {
                     if (Start != -1)
                     {
-                        Start = (Start - 1).Clamp(mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count);
+                        Start = (Start - 1).Clamp(mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count);
                     }
 
                     if (Start == -1) lblStart.Text = "--";
@@ -507,7 +516,7 @@ namespace AgOpenGPS
             btnMakeABLine.Enabled = false;
             btnMakeCurve.Enabled = false;
             if (isSet) return;
-            if (mf.bnd.bndArr.Count > Boundary && Boundary >= 0)
+            if (mf.bnd.Boundaries.Count > Boundary && Boundary >= 0)
             {
                 Point pt = oglSelf.PointToClient(Cursor.Position);
 
@@ -523,16 +532,16 @@ namespace AgOpenGPS
 
                 if (HeadLand)
                 {
-                    if (mf.bnd.bndArr[Boundary].Template.Count > 0)
+                    if (mf.bnd.Boundaries[Boundary].Template.Count > 0)
                     {
                         if (isA)
                         {
-                            for (int i = 0; i < mf.bnd.bndArr[Boundary].Template.Count; i++)
+                            for (int i = 0; i < mf.bnd.Boundaries[Boundary].Template.Count; i++)
                             {
-                                for (int j = 0; j < mf.bnd.bndArr[Boundary].Template[i].Count; j++)
+                                for (int j = 0; j < mf.bnd.Boundaries[Boundary].Template[i].Points.Count; j++)
                                 {
-                                    double dist = ((pint.Easting - mf.bnd.bndArr[Boundary].Template[i][j].Easting) * (pint.Easting - mf.bnd.bndArr[Boundary].Template[i][j].Easting))
-                                                    + ((pint.Northing - mf.bnd.bndArr[Boundary].Template[i][j].Northing) * (pint.Northing - mf.bnd.bndArr[Boundary].Template[i][j].Northing));
+                                    double dist = ((pint.Easting - mf.bnd.Boundaries[Boundary].Template[i].Points[j].Easting) * (pint.Easting - mf.bnd.Boundaries[Boundary].Template[i].Points[j].Easting))
+                                                    + ((pint.Northing - mf.bnd.Boundaries[Boundary].Template[i].Points[j].Northing) * (pint.Northing - mf.bnd.Boundaries[Boundary].Template[i].Points[j].Northing));
                                     if (dist < minDist)
                                     {
                                         TemplateIndex = i;
@@ -544,10 +553,10 @@ namespace AgOpenGPS
                         }
                         else
                         {
-                            for (int j = 0; j < mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count; j++)
+                            for (int j = 0; j < mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count; j++)
                             {
-                                double dist = ((pint.Easting - mf.bnd.bndArr[Boundary].Template[TemplateIndex][j].Easting) * (pint.Easting - mf.bnd.bndArr[Boundary].Template[TemplateIndex][j].Easting))
-                                                + ((pint.Northing - mf.bnd.bndArr[Boundary].Template[TemplateIndex][j].Northing) * (pint.Northing - mf.bnd.bndArr[Boundary].Template[TemplateIndex][j].Northing));
+                                double dist = ((pint.Easting - mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points[j].Easting) * (pint.Easting - mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points[j].Easting))
+                                                + ((pint.Northing - mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points[j].Northing) * (pint.Northing - mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points[j].Northing));
                                 if (dist < minDist)
                                 {
                                     minDist = dist;
@@ -559,13 +568,13 @@ namespace AgOpenGPS
                 }
                 else
                 {
-                    int ptCount = mf.bnd.bndArr[Boundary].bndLine.Count;
+                    int ptCount = mf.bnd.Boundaries[Boundary].Polygon.Points.Count;
                     if (ptCount > 1)
                     {
                         for (int t = 0; t < ptCount; t++)
                         {
-                            double dist = ((pint.Easting - mf.bnd.bndArr[Boundary].bndLine[t].Easting) * (pint.Easting - mf.bnd.bndArr[Boundary].bndLine[t].Easting))
-                                            + ((pint.Northing - mf.bnd.bndArr[Boundary].bndLine[t].Northing) * (pint.Northing - mf.bnd.bndArr[Boundary].bndLine[t].Northing));
+                            double dist = ((pint.Easting - mf.bnd.Boundaries[Boundary].Polygon.Points[t].Easting) * (pint.Easting - mf.bnd.Boundaries[Boundary].Polygon.Points[t].Easting))
+                                            + ((pint.Northing - mf.bnd.Boundaries[Boundary].Polygon.Points[t].Northing) * (pint.Northing - mf.bnd.Boundaries[Boundary].Polygon.Points[t].Northing));
                             if (dist < minDist)
                             {
                                 minDist = dist;
@@ -608,28 +617,22 @@ namespace AgOpenGPS
 
         private void Next_Click(object sender, EventArgs e)
         {
-            if (mf.bnd.bndArr.Count > 0)
+            if (mf.bnd.Boundaries.Count > 0)
             {
                 if (HeadLand)
                 {
-                    if (mf.bnd.bndArr.Count > Boundary && Boundary >= 0)
+                    if (mf.bnd.Boundaries.Count > Boundary && Boundary >= 0)
                     {
-                        if (NeedFixHeading)
-                        {
-                            NeedFixHeading = false;
-                            StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.FixHeading, Offset, TemplateIndex, Boundary, Start, End);
-                        }
-
                         if (Changed || ResetHeadLine)
                         {
-                            StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.Save, 0, ResetHeadLine ? 1 : 0, 0, 0, 0);
+                            StartTask_FixHead(mf.bnd.Boundaries[Boundary], HeadLandTaskName.Save, 0, ResetHeadLine ? 1 : 0, 0, 0, 0);
 
                             ResetHeadLine = false;
                         }
                     }
 
                     Boundary++;
-                    if (Boundary > mf.bnd.bndArr.Count - 1) Boundary = 0;
+                    if (Boundary > mf.bnd.Boundaries.Count - 1) Boundary = 0;
 
                     RebuildHeadLineTemplate(false);
                 }
@@ -644,7 +647,7 @@ namespace AgOpenGPS
                     if (End == -1) lblEnd.Text = "--";
                     else lblEnd.Text = End.ToString();
                     Boundary++;
-                    if (Boundary > mf.bnd.bndArr.Count - 1) Boundary = 0;
+                    if (Boundary > mf.bnd.Boundaries.Count - 1) Boundary = 0;
 
                     UpdateBoundary();
                 }
@@ -653,27 +656,21 @@ namespace AgOpenGPS
 
         private void Previous_Click(object sender, EventArgs e)
         {
-            if (mf.bnd.bndArr.Count > 0)
+            if (mf.bnd.Boundaries.Count > 0)
             {
                 if (HeadLand)
                 {
-                    if (mf.bnd.bndArr.Count > Boundary && Boundary >= 0)
+                    if (mf.bnd.Boundaries.Count > Boundary && Boundary >= 0)
                     {
-                        if (NeedFixHeading)
-                        {
-                            NeedFixHeading = false;
-                            StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.FixHeading, Offset, TemplateIndex, Boundary, Start, End);
-                        }
-
                         if (Changed || ResetHeadLine)
                         {
-                            StartTask_FixHead(mf.bnd.bndArr[Boundary], HeadLandTaskName.Save, 0, ResetHeadLine ? 1 : 0, 0, 0, 0);
+                            StartTask_FixHead(mf.bnd.Boundaries[Boundary], HeadLandTaskName.Save, 0, ResetHeadLine ? 1 : 0, 0, 0, 0);
                             ResetHeadLine = false;
                         }
                     }
 
                     Boundary--;
-                    if (Boundary < 0 || Boundary > mf.bnd.bndArr.Count - 1) Boundary = mf.bnd.bndArr.Count - 1;
+                    if (Boundary < 0 || Boundary > mf.bnd.Boundaries.Count - 1) Boundary = mf.bnd.Boundaries.Count - 1;
 
                     RebuildHeadLineTemplate(false);
                 }
@@ -688,7 +685,7 @@ namespace AgOpenGPS
                     else lblEnd.Text = End.ToString();
 
                     Boundary--;
-                    if (Boundary < 0 || Boundary > mf.bnd.bndArr.Count - 1) Boundary = mf.bnd.bndArr.Count - 1;
+                    if (Boundary < 0 || Boundary > mf.bnd.Boundaries.Count - 1) Boundary = mf.bnd.Boundaries.Count - 1;
                     UpdateBoundary();
                 }
             }
@@ -701,17 +698,17 @@ namespace AgOpenGPS
             Button b = (Button)sender;
             bool test = b.Name == "btnMakeCurve";
 
-            int ptCount = mf.bnd.bndArr[Boundary].bndLine.Count;
+            int ptCount = mf.bnd.Boundaries[Boundary].Polygon.Points.Count;
             if (test)
             {
                 if (((ptCount - End + Start) % ptCount) < ((ptCount - Start + End) % ptCount)) { int index = Start; Start = End; End = index; }
-                if (((ptCount - Start + End) % ptCount) < 7) return;
+                if (((ptCount - Start + End) % ptCount) < 1) return;
             }
             else
             {
                 Start = 0;
-                End = mf.bnd.bndArr[Boundary].bndLine.Count - 1;
-                if (ptCount < 7) return;
+                End = mf.bnd.Boundaries[Boundary].Polygon.Points.Count-1;
+                if (ptCount < 3) return;
             }
 
             mf.Guidance.Lines.Add(new CGuidanceLine());
@@ -723,54 +720,43 @@ namespace AgOpenGPS
             if (!test) mf.Guidance.Lines[idx].Mode = Gmode.Boundary;
             else mf.Guidance.Lines[idx].Mode = Gmode.Curve;
 
-            Vec3 point;
-            bool Loop = Start > End;
-            for (int i = Start; i <= End || Loop; i++)
+
+            List<Vec2> newList = new List<Vec2>();
+            if (Start > End)
             {
-                if (i >= mf.bnd.bndArr[Boundary].bndLine.Count)
-                {
-                    i = 0;
-                    Loop = false;
-                }
-
-                point.Northing = mf.bnd.bndArr[Boundary].bndLine[i].Northing + (Math.Sin(mf.bnd.bndArr[Boundary].bndLine[i].Heading) * -Offset);
-                point.Easting = mf.bnd.bndArr[Boundary].bndLine[i].Easting + (Math.Cos(mf.bnd.bndArr[Boundary].bndLine[i].Heading) * Offset);
-                point.Heading = mf.bnd.bndArr[Boundary].bndLine[i].Heading;
-
-                bool Add = true;
-
-
-                for (int t = 0; t < mf.bnd.bndArr[Boundary].bndLine.Count; t++)
-                {
-                    double dist = ((point.Easting - mf.bnd.bndArr[Boundary].bndLine[t].Easting) * (point.Easting - mf.bnd.bndArr[Boundary].bndLine[t].Easting)) + ((point.Northing - mf.bnd.bndArr[Boundary].bndLine[t].Northing) * (point.Northing - mf.bnd.bndArr[Boundary].bndLine[t].Northing));
-                    if (dist < (Offset * Offset) - 0.01)
-                    {
-                        Add = false;
-                        break;
-                    }
-                }
-
-                if (Add) mf.Guidance.Lines[idx].Segments.Add(point);
+                newList.AddRange(mf.bnd.Boundaries[Boundary].Polygon.Points.GetRange(Start, mf.bnd.Boundaries[Boundary].Polygon.Points.Count - Start));
+                newList.AddRange(mf.bnd.Boundaries[Boundary].Polygon.Points.GetRange(0, End+1));
+            }
+            else
+            {
+                newList.AddRange(mf.bnd.Boundaries[Boundary].Polygon.Points.GetRange(Start, End - Start+1));
             }
 
-            //who knows which way it actually goes
-            mf.Guidance.Lines[idx].Segments.CalculateRoundedCorner(0.5, mf.Guidance.Lines[idx].Mode == Gmode.Boundary, 0.0436332, CancellationToken.None);
+            mf.Guidance.Lines[idx].Segments = newList.OffsetPolyline(Offset, CancellationToken.None, mf.Guidance.Lines[idx].Mode == Gmode.Boundary);
+
+            //build the tail extensions
+            if (mf.Guidance.Lines[idx].Mode == Gmode.Curve)
+            {
+                mf.Guidance.AddFirstLastPoints();
+            }
+
 
             //calculate average heading of line
-            double x = 0, y = 0;
+            double x = 0, y = 0, N, E;
 
-            foreach (var pt in mf.Guidance.Lines[idx].Segments)
+            double Distance = 0;
+            int i = 0;
+            for (int j = 1; j < mf.Guidance.Lines[idx].Segments.Count; i = j++)
             {
-                x += Math.Cos(pt.Heading);
-                y += Math.Sin(pt.Heading);
+                x += (N = mf.Guidance.Lines[idx].Segments[j].Northing - mf.Guidance.Lines[idx].Segments[i].Northing);
+                y += (E = mf.Guidance.Lines[idx].Segments[j].Easting - mf.Guidance.Lines[idx].Segments[i].Easting);
+                Distance += Math.Sqrt(Math.Pow(N, 2) + Math.Pow(E, 2));
             }
-            x /= mf.Guidance.Lines[idx].Segments.Count;
-            y /= mf.Guidance.Lines[idx].Segments.Count;
+            x /= Distance;
+            y /= Distance;
             mf.Guidance.Lines[idx].Heading = Math.Atan2(y, x);
             if (mf.Guidance.Lines[idx].Heading < 0) mf.Guidance.Lines[idx].Heading += Glm.twoPI;
 
-            //build the tail extensions
-            if (test) mf.Guidance.AddFirstLastPoints();
 
             //create a name
             mf.Guidance.Lines[idx].Name = "~~ " +(Math.Round(Glm.ToDegrees(mf.Guidance.Lines[idx].Heading), 1)).ToString(CultureInfo.InvariantCulture)
@@ -798,7 +784,7 @@ namespace AgOpenGPS
             btnCancelTouch.Enabled = false;
 
             //calculate the AB Heading
-            double abHead = Math.Atan2(mf.bnd.bndArr[Boundary].bndLine[End].Easting - mf.bnd.bndArr[Boundary].bndLine[Start].Easting, mf.bnd.bndArr[Boundary].bndLine[End].Northing - mf.bnd.bndArr[Boundary].bndLine[Start].Northing);
+            double abHead = Math.Atan2(mf.bnd.Boundaries[Boundary].Polygon.Points[End].Easting - mf.bnd.Boundaries[Boundary].Polygon.Points[Start].Easting, mf.bnd.Boundaries[Boundary].Polygon.Points[End].Northing - mf.bnd.Boundaries[Boundary].Polygon.Points[Start].Northing);
             if (abHead < 0) abHead += Glm.twoPI;
 
             mf.Guidance.Lines.Add(new CGuidanceLine());
@@ -806,8 +792,8 @@ namespace AgOpenGPS
             int idx = mf.Guidance.Lines.Count - 1;
             mf.Guidance.Lines[idx].Heading = abHead;
 
-            mf.Guidance.Lines[idx].Segments.Add(new Vec3((Math.Sin(abHead) * -Offset) + mf.bnd.bndArr[Boundary].bndLine[Start].Northing, (Math.Cos(abHead) * Offset) + mf.bnd.bndArr[Boundary].bndLine[Start].Easting, 0));
-            mf.Guidance.Lines[idx].Segments.Add(new Vec3((Math.Sin(abHead) * -Offset) + mf.bnd.bndArr[Boundary].bndLine[End].Northing, (Math.Cos(abHead) * Offset) + mf.bnd.bndArr[Boundary].bndLine[End].Easting, 0));
+            mf.Guidance.Lines[idx].Segments.Add(new Vec2((Math.Cos(abHead) * Offset) + mf.bnd.Boundaries[Boundary].Polygon.Points[Start].Easting, (Math.Sin(abHead) * -Offset) + mf.bnd.Boundaries[Boundary].Polygon.Points[Start].Northing));
+            mf.Guidance.Lines[idx].Segments.Add(new Vec2((Math.Cos(abHead) * Offset) + mf.bnd.Boundaries[Boundary].Polygon.Points[End].Easting, (Math.Sin(abHead) * -Offset) + mf.bnd.Boundaries[Boundary].Polygon.Points[End].Northing));
 
             mf.Guidance.Lines[idx].Mode = Gmode.AB;
 
@@ -843,11 +829,14 @@ namespace AgOpenGPS
 
             GL.Color3(1, 1, 1);
 
-            for (int i = 0; i < mf.bnd.bndArr.Count; i++)
+            GL.LineWidth(2);
+
+            for (int i = 0; i < mf.bnd.Boundaries.Count; i++)
             {
                 if (Boundary == i) GL.Color3(1.0f, 0.0f, 0.0f);
                 else GL.Color3(0.95f, 0.5f, 0.250f);
-                mf.bnd.bndArr[i].DrawBoundaryLine();
+
+                mf.bnd.Boundaries[i].Polygon.DrawPolygon(false);
             }
 
             if (isDrawSections)
@@ -867,50 +856,53 @@ namespace AgOpenGPS
 
             if (HeadLand)
             {
-                if (mf.bnd.bndArr[Boundary].Template.Count > 0)
+                if (mf.bnd.Boundaries[Boundary].Template.Count > 0)
                 {
                     GL.LineWidth(1);
                     GL.Color3(0.20f, 0.96232f, 0.30f);
                     GL.PointSize(2);
-                    for (int h = 0; h < mf.bnd.bndArr[Boundary].Template.Count; h++)
+                    for (int h = 0; h < mf.bnd.Boundaries[Boundary].Template.Count; h++)
                     {
                         GL.Begin(PrimitiveType.LineLoop);
-                        for (int i = 0; i < mf.bnd.bndArr[Boundary].Template[h].Count; i++) GL.Vertex3(mf.bnd.bndArr[Boundary].Template[h][i].Easting, mf.bnd.bndArr[Boundary].Template[h][i].Northing, 0);
+                        for (int i = 0; i < mf.bnd.Boundaries[Boundary].Template[h].Points.Count; i++)
+                        {
+                            GL.Vertex3(mf.bnd.Boundaries[Boundary].Template[h].Points[i].Easting, mf.bnd.Boundaries[Boundary].Template[h].Points[i].Northing, 0);
+                        }
                         GL.End();
                     }
 
                     GL.PointSize(6);
-                    if (TemplateIndex < mf.bnd.bndArr[Boundary].Template.Count)
+                    if (TemplateIndex < mf.bnd.Boundaries[Boundary].Template.Count)
                     {
                         GL.Begin(PrimitiveType.Points);
                         GL.Color3(0.990, 0.00, 0.250);
-                        if (Start != -1 && Start < mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count) GL.Vertex3(mf.bnd.bndArr[Boundary].Template[TemplateIndex][Start].Easting, mf.bnd.bndArr[Boundary].Template[TemplateIndex][Start].Northing, 0);
+                        if (Start != -1 && Start < mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count) GL.Vertex3(mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points[Start].Easting, mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points[Start].Northing, 0);
                         GL.Color3(0.990, 0.960, 0.250);
-                        if (End != -1 && End < mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count) GL.Vertex3(mf.bnd.bndArr[Boundary].Template[TemplateIndex][End].Easting, mf.bnd.bndArr[Boundary].Template[TemplateIndex][End].Northing, 0);
+                        if (End != -1 && End < mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count) GL.Vertex3(mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points[End].Easting, mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points[End].Northing, 0);
                         GL.End();
 
                         if (Start != -1 && End != -1)
                         {
                             GL.Color3(0.965, 0.250, 0.950);
                             GL.LineWidth(2.0f);
-                            int ptCount = mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count;
+                            int ptCount = mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count;
                             if (ptCount < 1) return;
 
-                            int start2 = Math.Min(Start, mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count - 1);
-                            int end2 = Math.Min(End, mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count);
-                            if (((mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count - end2 + start2) % mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count) < ((mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count - start2 + end2) % mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count)) { int index = start2; start2 = end2; end2 = index; }
+                            int start2 = Math.Min(Start, mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count - 1);
+                            int end2 = Math.Min(End, mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count);
+                            if (((mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count - end2 + start2) % mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count) < ((mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count - start2 + end2) % mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count)) { int index = start2; start2 = end2; end2 = index; }
                             bool Loop = start2 > end2;
 
 
                             GL.Begin(PrimitiveType.LineStrip);
                             for (int i = start2; i <= end2 || Loop; i++)
                             {
-                                if (i > mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count)
+                                if (i > mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count)
                                 {
                                     i = 0;
                                     Loop = false;
                                 }
-                                if (i < mf.bnd.bndArr[Boundary].Template[TemplateIndex].Count) GL.Vertex3(mf.bnd.bndArr[Boundary].Template[TemplateIndex][i].Easting, mf.bnd.bndArr[Boundary].Template[TemplateIndex][i].Northing, 0);
+                                if (i < mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points.Count) GL.Vertex3(mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points[i].Easting, mf.bnd.Boundaries[Boundary].Template[TemplateIndex].Points[i].Northing, 0);
                             }
                             GL.End();
                         }
@@ -923,10 +915,10 @@ namespace AgOpenGPS
                 GL.Begin(PrimitiveType.Points);
 
                 GL.Color3(0.95, 0.950, 0.0);
-                if (Start != -1) GL.Vertex3(mf.bnd.bndArr[Boundary].bndLine[Start].Easting, mf.bnd.bndArr[Boundary].bndLine[Start].Northing, 0);
+                if (Start != -1) GL.Vertex3(mf.bnd.Boundaries[Boundary].Polygon.Points[Start].Easting, mf.bnd.Boundaries[Boundary].Polygon.Points[Start].Northing, 0);
 
                 GL.Color3(0.950, 096.0, 0.0);
-                if (End != -1) GL.Vertex3(mf.bnd.bndArr[Boundary].bndLine[End].Easting, mf.bnd.bndArr[Boundary].bndLine[End].Northing, 0);
+                if (End != -1) GL.Vertex3(mf.bnd.Boundaries[Boundary].Polygon.Points[End].Easting, mf.bnd.Boundaries[Boundary].Polygon.Points[End].Northing, 0);
                 GL.End();
 
                 //draw the actual built lines
@@ -954,7 +946,7 @@ namespace AgOpenGPS
                             }
                             else
                             {
-                                foreach (Vec3 item in mf.Guidance.Lines[i].Segments)
+                                foreach (Vec2 item in mf.Guidance.Lines[i].Segments)
                                 {
                                     GL.Vertex3(item.Easting, item.Northing, 0);
                                 }
@@ -982,7 +974,7 @@ namespace AgOpenGPS
                         }
                         else
                         {
-                            foreach (Vec3 item in mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments)
+                            foreach (Vec2 item in mf.Guidance.Lines[mf.Guidance.CurrentEditLine].Segments)
                             {
                                 GL.Vertex3(item.Easting, item.Northing, 0);
                             }
@@ -1027,19 +1019,19 @@ namespace AgOpenGPS
         //determine mins maxs of patches and whole field.
         private void CalculateMinMax()
         {
-            if (mf.bnd.bndArr.Count > 0)
+            if (mf.bnd.Boundaries.Count > 0)
             {
                 //the largest distancew across field
-                double dist = Math.Abs(mf.bnd.bndArr[0].Eastingmin - mf.bnd.bndArr[0].Eastingmax);
-                double dist2 = Math.Abs(mf.bnd.bndArr[0].Northingmin - mf.bnd.bndArr[0].Northingmax);
+                double dist = Math.Abs(mf.bnd.Boundaries[0].Eastingmin - mf.bnd.Boundaries[0].Eastingmax);
+                double dist2 = Math.Abs(mf.bnd.Boundaries[0].Northingmin - mf.bnd.Boundaries[0].Northingmax);
 
                 if (dist > dist2) maxFieldDistance = dist;
                 else maxFieldDistance = dist2;
 
                 if (maxFieldDistance < 100) maxFieldDistance = 100;
 
-                fieldCenterX = (mf.bnd.bndArr[0].Eastingmax + mf.bnd.bndArr[0].Eastingmin) / 2.0;
-                fieldCenterY = (mf.bnd.bndArr[0].Northingmax + mf.bnd.bndArr[0].Northingmin) / 2.0;
+                fieldCenterX = (mf.bnd.Boundaries[0].Eastingmax + mf.bnd.Boundaries[0].Eastingmin) / 2.0;
+                fieldCenterY = (mf.bnd.Boundaries[0].Northingmax + mf.bnd.Boundaries[0].Northingmin) / 2.0;
             }
         }
     }

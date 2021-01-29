@@ -394,25 +394,25 @@ namespace AgOpenGPS
 
         private void BuildGGA()
         {
-            double latitude = 0;
-            double longitude = 0;
+            double lat = 0;
+            double lon = 0;
 
             if (Properties.Settings.Default.setNTRIP_isGGAManual)
             {
-                latitude = Properties.Settings.Default.setNTRIP_manualLat;
-                longitude = Properties.Settings.Default.setNTRIP_manualLon;
+                lat = Properties.Settings.Default.setNTRIP_manualLat;
+                lon = Properties.Settings.Default.setNTRIP_manualLon;
             }
             else
             {
-                latitude = pn.latitude;
-                longitude = pn.longitude;
+                lat = Latitude;
+                lon = Longitude;
             }
             //convert to DMS from Degrees
-            double latMinu = latitude;
-            double longMinu = longitude;
+            double latMinu = lat;
+            double longMinu = lon;
 
-            double latDeg = (int)latitude;
-            double longDeg = (int)longitude;
+            double latDeg = (int)lat;
+            double longDeg = (int)lon;
 
             latMinu -= latDeg;
             longMinu -= longDeg;
@@ -428,9 +428,9 @@ namespace AgOpenGPS
 
             char NS = 'W';
             char EW = 'N';
-            if (latitude >= 0) NS = 'N';
+            if (lat >= 0) NS = 'N';
             else NS = 'S';
-            if (longitude >= 0) EW = 'E';
+            if (lon >= 0) EW = 'E';
             else EW = 'W';
 
             sbGGA.Clear();

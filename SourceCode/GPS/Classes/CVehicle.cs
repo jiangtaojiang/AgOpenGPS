@@ -1,6 +1,4 @@
-﻿//Please, if you use this, share the improvements
-
-using OpenTK.Graphics.OpenGL;
+﻿using OpenTK.Graphics.OpenGL;
 using System;
 
 namespace AgOpenGPS
@@ -77,6 +75,9 @@ namespace AgOpenGPS
                 goalPointDistance += distanceFromCurrentLine * goalPointDistance * mf.vehicle.goalPointDistanceMultiplier;
             else
                 goalPointDistance += goalPointDistance * mf.vehicle.goalPointDistanceMultiplier;
+
+            //??????
+            //goalPointDistance -= Math.Abs(distanceFromCurrentLine) * goalPointDistance * mf.vehicle.goalPointDistanceMultiplier;
 
             if (mf.pn.speed > -0.1 && goalPointDistance < mf.vehicle.goalPointLookAheadMinimumDistance) goalPointDistance = mf.vehicle.goalPointLookAheadMinimumDistance;
             else if (mf.pn.speed < -0.09 && goalPointDistance > -mf.vehicle.goalPointLookAheadMinimumDistance) goalPointDistance = -mf.vehicle.goalPointLookAheadMinimumDistance;

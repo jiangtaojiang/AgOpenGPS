@@ -18,22 +18,16 @@ namespace AgOpenGPS
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            lblZone.Text = mf.pn.zone.ToString();
-
-            lblEastingField.Text = Math.Round(mf.pn.fix.Easting, 1).ToString();
-            lblNorthingField.Text = Math.Round(mf.pn.fix.Northing, 1).ToString();
-                                                                                                                                                                  
-            lblEasting.Text = ((int)mf.pn.actualEasting).ToString();
-            lblNorthing.Text = ((int)mf.pn.actualNorthing).ToString();
-
-            lblLatitude.Text = Math.Round(mf.pn.latitude, 7).ToString();
-            lblLongitude.Text = Math.Round(mf.pn.longitude, 7).ToString();
+            lblEastingField.Text = mf.pn.fix.Easting.ToString("N4");
+            lblNorthingField.Text = mf.pn.fix.Northing.ToString("N4");
+                                                                                                             
+            lblLatitude.Text = Math.Round(mf.Latitude, 7).ToString();
+            lblLongitude.Text = Math.Round(mf.Longitude, 7).ToString();
 
             //other sat and GPS info
             lblFixQuality.Text = mf.FixQuality;
             lblSatsTracked.Text = mf.pn.satellitesTracked.ToString();
             lblStatus.Text = (mf.pn.status == "A" ? "Active": "Void");
-
 
             lblHDOP.Text = mf.pn.hdop.ToString();
             tboxNMEASerial.Lines = mf.recvSentenceSettings;
@@ -66,33 +60,14 @@ namespace AgOpenGPS
                 lblTimeRemaining.Text = mf.fd.TimeTillFinished;
                 lblEqSpec.Text =  (Math.Round(mf.Guidance.GuidanceWidth * Glm.m2ft, 2)).ToString() + " ft  " + mf.vehicleFileName + mf.toolFileName;
             }
-
-            if (mf.isUDPSendConnected)
-            {
-                int text1 = mf.autoSteerUDPActivity;
-                int text2 = mf.machineUDPActivity;
-                int text3 = mf.switchUDPActivity;
-
-                tboxUDPSteer.Text = text1.ToString();
-                tboxUDPMachine.Text = text2.ToString();
-                tboxUDPSwitch.Text = text3.ToString();
-            }
-            else
-            {
-                tboxUDPSteer.Text = "NC";
-                tboxUDPMachine.Text = "NC";
-                tboxUDPSwitch.Text = "NC";
-            }
         }
 
         private void FormGPSData_Load(object sender, EventArgs e)
         {
-            lblConvergenceAngle.Text = Math.Round(Glm.ToDegrees(mf.pn.convergenceAngle), 3).ToString();
             DateTime text1 = mf.sunrise;
             DateTime text2 = mf.sunset;
             lblSunrise.Text = text1.ToString("HH:mm");
             lblSunset.Text = text2.ToString("HH:mm");
-
         }
     }
 }

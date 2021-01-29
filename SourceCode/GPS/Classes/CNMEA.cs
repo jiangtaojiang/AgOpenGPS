@@ -4,139 +4,10 @@ using System.Text;
 
 namespace AgOpenGPS
 {
-    #region NMEA_Sentence_Guide
-
-    //$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M ,  ,*47
-    //   0     1      2      3    4      5 6  7  8   9    10 11  12 13  14
-    //        Time      Lat       Lon
-
-    /*
-    GGA - essential fix data which provide 3D location and accuracy data.
-
-     $GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47
-
-    Where:
-         GGA          Global Positioning System Fix Data
-         123519       Fix taken at 12:35:19 UTC
-         4807.038,N   Latitude 48 deg 07.038' N
-         01131.000,E  Longitude 11 deg 31.000' E
-         1            Fix quality: 0 = invalid
-                                   1 = GPS fix (SPS)
-                                   2 = DGPS fix
-                                   3 = PPS fix
-                                   4 = Real Time Kinematic
-                                   5 = Float RTK
-                                   6 = estimated (dead reckoning) (2.3 feature)
-                                   7 = Manual input mode
-                                   8 = Simulation mode
-     (7)    08           Number of satellites being tracked
-     (8)    0.9          Horizontal dilution of position
-         545.4,M      Altitude, Meters, above mean sea level
-         46.9,M       Height of geoid (mean sea level) above WGS84
-                          ellipsoid
-         (empty field) time in seconds since last DGPS update
-         (empty field) DGPS station ID number
-         *47          the checksum data, always begins with *
-     *
-     *
-   //$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
-   //  0      1    2   3      4    5      6   7     8     9     10   11
-    //        Time      Lat        Lon       knots  Ang   Date  MagV
-
-    Where:
-         RMC          Recommended Minimum sentence C
-         123519       Fix taken at 12:35:19 UTC
-         A            Status A=active or V=Void.
-         4807.038,N   Latitude 48 deg 07.038' N
-         01131.000,E  Longitude 11 deg 31.000' E
-         022.4        Speed over the ground in knots
-         084.4        Track angle in degrees True
-         230394       Date - 23rd of March 1994
-         003.1,W      Magnetic Variation
-         *6A          The checksum data, always begins with *
-     *
-   $GPVTG,054.7,T,034.4,M,005.5,N,010.2,K*48
-     *
-        VTG          Track made good and ground speed
-        054.7,T      True track made good (degrees)
-        034.4,M      Magnetic track made good
-        005.5,N      Ground speed, knots
-        010.2,K      Ground speed, Kilometers per hour
-        *48          Checksum
-        *
-$PAOGI
- * * From GGA:
-(1 , 2) 123519 Fix taken at 1219 UTC
-(3 , 4) 4807.038,N Latitude 48 deg 07.038' N
-(5, 6) 01131.000,E Longitude 11 deg 31.000' E
-(7) 1 Fix quality: 0 = invalid
-1 = GPS fix (SPS)
-2 = DGPS fix
-3 = PPS fix
-4 = Real Time Kinematic
-5 = Float RTK
-6 = estimated (dead reckoning) (2.3 feature)
-7 = Manual input mode
-8 = Simulation mode
-(8) 08 Number of satellites being tracked
-(9) 0.9 Horizontal dilution of position
-(10, 11) 545.4,M Altitude, Meters, above mean sea level
-(12) 1.2 time in seconds since last DGPS update
-
-From RMC or VTG:
-(13) 022.4 Speed over the ground in knots (Or would you prefer KPH)
-(14) 084.4 Track angle in degrees True
-
-FROM IMU:
-(15) XXX.xx IMU Heading in degrees True
-(16) XXX.xx Roll angle in degrees (What is a positive roll, left leaning - left down, right up?)
-(17) XXX.xx Pitch angle in degrees (Positive pitch = nose up)
-(18) XXX.xx Yaw Rate in Degrees / second
-(19) T/F IMU status - Valid IMU Fusion
-
-*CHKSUM
-*
-*             /*       Time, yaw, tilt, range for moving baseline RTK
-An example of the PTNL,AVR message string is:
-
-$PTNL,AVR,181059.6,+149.4688,Yaw,+0.0134,Tilt,,,60.191,3,2.5,6*00
-
-AVR message fields
-Field	Meaning
-0	Message ID $PTNL,AVR
-1	UTC of vector fix
-2	Yaw angle in degrees
-3	Yaw
-4	Tilt angle in degrees
-5	Tilt
-6	Reserved
-7	Reserved
-8	Range in meters
-9	GPS quality indicator:
-0: Fix not available or invalid
-1: Autonomous GPS fix
-2: Differential carrier phase solution RTK (Float)
-3: Differential carrier phase solution RTK (Fix)
-4: Differential code-based solution, DGPS
-10	PDOP
-11	Number of satellites used in solution
-12	The checksum data, always begins with *
-    */
-
-    #endregion NMEA_Sentence_Guide
-
     public class CNMEA
     {
-        //WGS84 Lat Long
-        public double latitude, longitude;
-
-        public double latStart = 0, lonStart = 0;
-
-        public double actualEasting, actualNorthing, zone;
-        public double centralMeridian, convergenceAngle;
-
-        public bool UpdatedLatLon, EnableHeadRoll;
-        public string rawBuffer = "";
+        public bool EnableHeadRoll;
+        private string rawBuffer = "";
         private string[] words;
         private string nextNMEASentence = "";
         public string FixFromSentence;
@@ -162,9 +33,6 @@ Field	Meaning
         public string status = "q";
         public DateTime utcDateTime;
         public char hemisphere = 'N';
-
-        //UTM numbers are huge, these cut them way down.
-        public int utmNorth, utmEast;
 
         public StringBuilder logNMEASentence = new StringBuilder();
         private readonly FormGPS mf;
@@ -220,8 +88,10 @@ Field	Meaning
             return sentence;
         }
 
-        public void ParseNMEA()
+        public void ParseNMEA(string Buffer)
         {
+            rawBuffer += Buffer;
+
             if (rawBuffer == null) return;
 
             //find end of a sentence
@@ -279,6 +149,28 @@ Field	Meaning
 
         private void ParseAVR()
         {
+            #region AVR Message
+            // $PTNL,AVR,145331.50,+35.9990,Yaw,-7.8209,Tilt,-0.4305,Roll,444.232,3,1.2,17 * 03
+
+            //0 Message ID $PTNL,AVR
+            //1 UTC of vector fix
+            //2 Yaw angle, in degrees
+            //3 Yaw
+            //4 Tilt angle, in degrees
+            //5 Tilt
+            //6 Roll angle, in degrees
+            //7 Roll
+            //8 Range, in meters
+            //9 GPS quality indicator:
+            // 0: Fix not available or invalid
+            // 1: Autonomous GPS fix
+            // 2: Differential carrier phase solution RTK(Float)
+            // 3: Differential carrier phase solution RTK(Fix)
+            // 4: Differential code-based solution, DGPS
+            //10 PDOP
+            //11 Number of satellites used in solution
+            //12 The checksum data, always begins with *
+            #endregion AVR Message
             if (!string.IsNullOrEmpty(words[1]))
             {
                 if (words[8] == "Roll")
@@ -303,74 +195,38 @@ Field	Meaning
                     mf.ahrs.rollX16 = (int)(XeRoll * 16);
                 }
             }
-            //True heading
-            // 0 1 2 3 4 5 6 7 8 9
-            // $PTNL,AVR,145331.50,+35.9990,Yaw,-7.8209,Tilt,-0.4305,Roll,444.232,3,1.2,17 * 03
-            //Field
-            // Meaning
-            //0 Message ID $PTNL,AVR
-            //1 UTC of vector fix
-            //2 Yaw angle, in degrees
-            //3 Yaw
-            //4 Tilt angle, in degrees
-            //5 Tilt
-            //6 Roll angle, in degrees
-            //7 Roll
-            //8 Range, in meters
-            //9 GPS quality indicator:
-            // 0: Fix not available or invalid
-            // 1: Autonomous GPS fix
-            // 2: Differential carrier phase solution RTK(Float)
-            // 3: Differential carrier phase solution RTK(Fix)
-            // 4: Differential code-based solution, DGPS
-            //10 PDOP
-            //11 Number of satellites used in solution
-            //12 The checksum data, always begins with *
-
         }
 
         private void ParseGGA()
         {
+            #region GGA Message
             //$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M ,  ,*47
-            //   0     1      2      3    4      5 6  7  8   9    10 11  12 13  14
-            //        Time      Lat       Lon
 
-            //is the sentence GGA
+            //GGA          Global Positioning System Fix Data
+            //123519       Fix taken at 12:35:19 UTC
+            //4807.038,N   Latitude 48 deg 07.038' N
+            //01131.000,E  Longitude 11 deg 31.000' E
+            //1            Fix quality: 0 = invalid
+            //                          1 = GPS fix (SPS)
+            //                          2 = DGPS fix
+            //                          3 = PPS fix
+            //                          4 = Real Time Kinematic
+            //                          5 = Float RTK
+            //                          6 = estimated (dead reckoning) (2.3 feature)
+            //                          7 = Manual input mode
+            //                          8 = Simulation mode
+            //08           Number of satellites being tracked
+            //0.9          Horizontal dilution of position
+            //545.4,M      Altitude, Meters, above mean sea level
+            //46.9,M       Height of geoid (mean sea level) above WGS84 ellipsoid
+            //(empty field) time in seconds since last DGPS update
+            //(empty field) DGPS station ID number
+            //*47          the checksum data, always begins with *
+            #endregion GGA Message
+
             if (!string.IsNullOrEmpty(words[2]) && !string.IsNullOrEmpty(words[3])
                 && !string.IsNullOrEmpty(words[4]) && !string.IsNullOrEmpty(words[5]))
             {
-                if (FixFromSentence == "GGA")
-                {
-                    //get latitude and convert to decimal degrees
-                    int decim = words[2].IndexOf(".", StringComparison.Ordinal);
-                    decim -= 2;
-                    double.TryParse(words[2].Substring(0, decim), NumberStyles.Float, CultureInfo.InvariantCulture, out latitude);
-                    double.TryParse(words[2].Substring(decim), NumberStyles.Float, CultureInfo.InvariantCulture, out double temp);
-                    temp *= 0.01666666666667;
-                    latitude += temp;
-                    if (words[3] == "S")
-                    {
-                        latitude *= -1;
-                        hemisphere = 'S';
-                    }
-                    else { hemisphere = 'N'; }
-
-                    //get longitude and convert to decimal degrees
-                    decim = words[4].IndexOf(".", StringComparison.Ordinal);
-                    decim -= 2;
-                    double.TryParse(words[4].Substring(0, decim), NumberStyles.Float, CultureInfo.InvariantCulture, out longitude);
-                    double.TryParse(words[4].Substring(decim), NumberStyles.Float, CultureInfo.InvariantCulture, out temp);
-                    longitude += temp * 0.0166666666667;
-
-                    { if (words[5] == "W") longitude *= -1; }
-
-                    //calculate zone and UTM coords
-                    ToUTM_FixConvergenceAngle();
-
-                    //average the speed
-                    AverageTheSpeed();
-                }
-
                 //FixQuality
                 int.TryParse(words[6], NumberStyles.Float, CultureInfo.InvariantCulture, out FixQuality);
 
@@ -386,12 +242,50 @@ Field	Meaning
                 //age of differential
                 double.TryParse(words[11], NumberStyles.Float, CultureInfo.InvariantCulture, out ageDiff);
 
+                if (FixFromSentence == "GGA")
+                {
+                    //get latitude and convert to decimal degrees
+                    int decim = words[2].IndexOf(".", StringComparison.Ordinal);
+                    decim -= 2;
+                    double.TryParse(words[2].Substring(0, decim), NumberStyles.Float, CultureInfo.InvariantCulture, out double Latitude);
+                    double.TryParse(words[2].Substring(decim), NumberStyles.Float, CultureInfo.InvariantCulture, out double temp);
+                    temp *= 0.01666666666667;
+                    Latitude += temp;
+                    if (words[3] == "S")
+                    {
+                        Latitude *= -1;
+                        hemisphere = 'S';
+                    }
+                    else { hemisphere = 'N'; }
+                    mf.Latitude = Latitude;
+                    //get longitude and convert to decimal degrees
+                    decim = words[4].IndexOf(".", StringComparison.Ordinal);
+                    decim -= 2;
+                    double.TryParse(words[4].Substring(0, decim), NumberStyles.Float, CultureInfo.InvariantCulture, out double Longitude);
+                    double.TryParse(words[4].Substring(decim), NumberStyles.Float, CultureInfo.InvariantCulture, out temp);
+                    Longitude += temp * 0.0166666666667;
+
+                    { if (words[5] == "W") Longitude *= -1; }
+                    mf.Longitude = Longitude;
+
+                    mf.UpdateFixPosition();
+                }
             }
         }
 
         private void ParseVTG()
         {
+            #region VTG Message
             //$GPVTG,054.7,T,034.4,M,005.5,N,010.2,K*48
+
+            //VTG          Track made good and ground speed
+            //054.7,T      True track made good (degrees)
+            //034.4,M      Magnetic track made good
+            //005.5,N      Ground speed, knots
+            //010.2,K      Ground speed, Kilometers per hour
+            //*48          Checksum
+            #endregion VTG Message
+
             //is the sentence GGA
             if (!string.IsNullOrEmpty(words[1]) && !string.IsNullOrEmpty(words[5]))
             {
@@ -400,6 +294,7 @@ Field	Meaning
                 speed = Math.Round(speed * 1.852, 3);
 
                 if (mf.vehicle.isReverse && speed > 0) speed *= -1;
+                AverageTheSpeed();
 
                 //True heading
                 double.TryParse(words[1], NumberStyles.Float, CultureInfo.InvariantCulture, out HeadingForced);
@@ -412,37 +307,45 @@ Field	Meaning
 
         private void ParseOGI()
         {
-            //PAOGI parsing of the sentence
-            //make sure there aren't missing coords in sentence
+            #region PAOGI Message
+            /*
+            $PAOGI
+            (1) 123519 Fix taken at 1219 UTC
+
+            Roll corrected position
+            (2,3) 4807.038,N Latitude 48 deg 07.038' N
+            (4,5) 01131.000,E Longitude 11 deg 31.000' E
+
+            (6) 1 Fix quality: 
+                0 = invalid
+                1 = GPS fix(SPS)
+                2 = DGPS fix
+                3 = PPS fix
+                4 = Real Time Kinematic
+                5 = Float RTK
+                6 = estimated(dead reckoning)(2.3 feature)
+                7 = Manual input mode
+                8 = Simulation mode
+            (7) Number of satellites being tracked
+            (8) 0.9 Horizontal dilution of position
+            (9) 545.4 Altitude (ALWAYS in Meters, above mean sea level)
+            (10) 1.2 time in seconds since last DGPS update
+
+            (11) 022.4 Speed over the ground in knots - can be positive or negative
+
+            FROM AHRS:
+            (12) Heading in degrees
+            (13) Roll angle in degrees(positive roll = right leaning - right down, left up)
+            (14) Pitch angle in degrees(Positive pitch = nose up)
+            (15) Yaw Rate in Degrees / second
+
+            * CHKSUM
+            */
+            #endregion PAOGI Message
+
             if (!string.IsNullOrEmpty(words[2]) && !string.IsNullOrEmpty(words[3])
                 && !string.IsNullOrEmpty(words[4]) && !string.IsNullOrEmpty(words[5]))
             {
-                if (FixFromSentence == "OGI")
-                {
-                    //get latitude and convert to decimal degrees
-                    double.TryParse(words[2].Substring(0, 2), NumberStyles.Float, CultureInfo.InvariantCulture, out latitude);
-                    double.TryParse(words[2].Substring(2), NumberStyles.Float, CultureInfo.InvariantCulture, out double temp);
-                    temp *= 0.01666666666666666666666666666667;
-                    latitude += temp;
-                    if (words[3] == "S")
-                    {
-                        latitude *= -1;
-                        hemisphere = 'S';
-                    }
-                    else { hemisphere = 'N'; }
-
-                    //get longitude and convert to decimal degrees
-                    double.TryParse(words[4].Substring(0, 3), NumberStyles.Float, CultureInfo.InvariantCulture, out longitude);
-                    double.TryParse(words[4].Substring(3), NumberStyles.Float, CultureInfo.InvariantCulture, out temp);
-                    longitude += temp * 0.01666666666666666666666666666667;
-
-                    { if (words[5] == "W") longitude *= -1; }
-
-                    //calculate zone and UTM coords, roll calcs
-                    ToUTM_FixConvergenceAngle();
-
-                }
-
                 //FixQuality
                 int.TryParse(words[6], NumberStyles.Float, CultureInfo.InvariantCulture, out FixQuality);
 
@@ -462,6 +365,7 @@ Field	Meaning
                 double.TryParse(words[11], NumberStyles.Float, CultureInfo.InvariantCulture, out speed);
                 speed = Math.Round(speed * 1.852, 3);
                 if (mf.vehicle.isReverse && speed > 0) speed *= -1;
+                AverageTheSpeed();
 
                 //Dual antenna derived heading
                 double.TryParse(words[12], NumberStyles.Float, CultureInfo.InvariantCulture, out HeadingForced);
@@ -489,54 +393,42 @@ Field	Meaning
                 //Angular velocity
                 double.TryParse(words[15], NumberStyles.Float, CultureInfo.InvariantCulture, out nAngularVelocity);
 
-                AverageTheSpeed();
+                if (FixFromSentence == "OGI")
+                {
+                    //get latitude and convert to decimal degrees
+                    double.TryParse(words[2].Substring(0, 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double Latitude);
+                    double.TryParse(words[2].Substring(2), NumberStyles.Float, CultureInfo.InvariantCulture, out double temp);
+                    temp *= 0.01666666666666666666666666666667;
+                    Latitude += temp;
+                    if (words[3] == "S")
+                    {
+                        Latitude *= -1;
+                        hemisphere = 'S';
+                    }
+                    else { hemisphere = 'N'; }
 
-                /*
-                $PAOGI
-                (1) 123519 Fix taken at 1219 UTC
+                    mf.Latitude = Latitude;
+                    //get longitude and convert to decimal degrees
+                    double.TryParse(words[4].Substring(0, 3), NumberStyles.Float, CultureInfo.InvariantCulture, out double Longitude);
+                    double.TryParse(words[4].Substring(3), NumberStyles.Float, CultureInfo.InvariantCulture, out temp);
+                    Longitude += temp * 0.01666666666666666666666666666667;
 
-                Roll corrected position
-                (2,3) 4807.038,N Latitude 48 deg 07.038' N
-                (4,5) 01131.000,E Longitude 11 deg 31.000' E
+                    { if (words[5] == "W") Longitude *= -1; }
+                    mf.Longitude = Longitude;
 
-                (6) 1 Fix quality: 
-                    0 = invalid
-                    1 = GPS fix(SPS)
-                    2 = DGPS fix
-                    3 = PPS fix
-                    4 = Real Time Kinematic
-                    5 = Float RTK
-                    6 = estimated(dead reckoning)(2.3 feature)
-                    7 = Manual input mode
-                    8 = Simulation mode
-                (7) Number of satellites being tracked
-                (8) 0.9 Horizontal dilution of position
-                (9) 545.4 Altitude (ALWAYS in Meters, above mean sea level)
-                (10) 1.2 time in seconds since last DGPS update
-
-                (11) 022.4 Speed over the ground in knots - can be positive or negative
-
-                FROM AHRS:
-                (12) Heading in degrees
-                (13) Roll angle in degrees(positive roll = right leaning - right down, left up)
-                (14) Pitch angle in degrees(Positive pitch = nose up)
-                (15) Yaw Rate in Degrees / second
-
-                * CHKSUM
-                */
+                    mf.UpdateFixPosition();
+                }
             }
         }
 
         private void ParseHDT()
         {
-            /* $GNHDT,123.456,T * 00
+            //$GNHDT,123.456,T * 00
 
-            Field Meaning
-            0   Message ID $GNHDT
-            1   Heading in degrees
-            2   T: Indicates heading relative to True North
-            3   The checksum data, always begins with *
-                */
+            //(0)   Message ID $GNHDT
+            //(1)   Heading in degrees
+            //(2)   T: Indicates heading relative to True North
+            //(3)   The checksum data, always begins with *
 
             if (!string.IsNullOrEmpty(words[1]))
             {
@@ -547,6 +439,27 @@ Field	Meaning
 
         private void ParseSTI032() //heading and roll from SkyTraQ receiver
         {
+            #region STI0 Message
+            //$PSTI,032,033010.000,111219,A,R,‐4.968,‐10.817,‐1.849,12.046,204.67,,,,,*39
+
+            //(1) 032 Baseline Data indicator
+            //(2) UTC time hhmmss.sss
+            //(3) UTC date ddmmyy
+            //(4) Status:
+            //    V = Void
+            //    A = Active
+            //(5) Mode Indicator:
+            //    F = Float RTK
+            //    R = fixed RTK
+            //(6) East-projection of baseline, meters
+            //(7) North-projection of baseline, meters
+            //(8) Up-projection of baseline, meters
+            //(9) Baseline length, meters
+            //(10) Baseline course: angle between baseline vector and north direction, degrees
+            //(11) - (15) Reserved
+            //(16) * Checksum
+            #endregion STI0 Message
+
             if (!string.IsNullOrEmpty(words[10]))
             {
                 //baselineCourse: angle between baseline vector (from kinematic base to rover) and north direction, degrees
@@ -577,25 +490,6 @@ Field	Meaning
                 }
             }
 
-            /*
-            $PSTI,032,033010.000,111219,A,R,‐4.968,‐10.817,‐1.849,12.046,204.67,,,,,*39
-            (1) 032 Baseline Data indicator
-            (2) UTC time hhmmss.sss
-            (3) UTC date ddmmyy
-            (4) Status:
-                V = Void
-                A = Active
-            (5) Mode Indicator:
-                F = Float RTK
-                R = fixed RTK
-            (6) East-projection of baseline, meters
-            (7) North-projection of baseline, meters
-            (8) Up-projection of baseline, meters
-            (9) Baseline length, meters
-            (10) Baseline course: angle between baseline vector and north direction, degrees
-            (11) - (15) Reserved
-            (16) * Checksum
-            */
         }
 
         private void ParseTRA()  //tra contains hdt and roll for the ub482 receiver
@@ -612,46 +506,36 @@ Field	Meaning
                 if (trasolution != 4) nRoll = 0;
 
                 if (mf.ahrs.isRollFromAVR)
-                    mf.ahrs.rollX16 =  (int)(nRoll * 16);
+                    mf.ahrs.rollX16 = (int)(nRoll * 16);
             }
         }
 
         private void ParseRMC()
         {
-            //GPRMC parsing of the sentence
-            //make sure there aren't missing coords in sentence
+            #region RMC Message
+            //$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
+
+            //RMC          Recommended Minimum sentence C
+            //123519       Fix taken at 12:35:19 UTC
+            //A            Status A=active or V=Void.
+            //4807.038,N   Latitude 48 deg 07.038' N
+            //01131.000,E  Longitude 11 deg 31.000' E
+            //022.4        Speed over the ground in knots
+            //084.4        Track angle in degrees True
+            //230394       Date - 23rd of March 1994
+            //003.1,W      Magnetic Variation
+            //*6A          * Checksum
+            #endregion RMC Message
+
             if (!string.IsNullOrEmpty(words[3]) && !string.IsNullOrEmpty(words[4])
                 && !string.IsNullOrEmpty(words[5]) && !string.IsNullOrEmpty(words[6]))
             {
-                if (FixFromSentence == "RMC")
-                {
-                    //get latitude and convert to decimal degrees
-                    double.TryParse(words[3].Substring(0, 2), NumberStyles.Float, CultureInfo.InvariantCulture, out latitude);
-                    double.TryParse(words[3].Substring(2), NumberStyles.Float, CultureInfo.InvariantCulture, out double temp);
-                    latitude += temp * 0.01666666666666666666666666666667;
-
-                    if (words[4] == "S")
-                    {
-                        latitude *= -1;
-                        hemisphere = 'S';
-                    }
-                    else { hemisphere = 'N'; }
-
-                    //get longitude and convert to decimal degrees
-                    double.TryParse(words[5].Substring(0, 3), NumberStyles.Float, CultureInfo.InvariantCulture, out longitude);
-                    double.TryParse(words[5].Substring(3), NumberStyles.Float, CultureInfo.InvariantCulture, out temp);
-                    longitude += temp * 0.01666666666666666666666666666667;
-
-                    if (words[6] == "W") longitude *= -1;
-
-                    //calculate zone and UTM coords
-                    ToUTM_FixConvergenceAngle();
-                }
-
                 //Convert from knots to kph for speed
                 double.TryParse(words[7], NumberStyles.Float, CultureInfo.InvariantCulture, out speed);
                 speed = Math.Round(speed * 1.852, 3);
                 if (mf.vehicle.isReverse && speed > 0) speed *= -1;
+                //average the speed
+                AverageTheSpeed();
 
                 //True heading
                 double.TryParse(words[8], NumberStyles.Float, CultureInfo.InvariantCulture, out HeadingForced);
@@ -670,9 +554,31 @@ Field	Meaning
                     }
                 }
 
+                if (FixFromSentence == "RMC")
+                {
+                    //get latitude and convert to decimal degrees
+                    double.TryParse(words[3].Substring(0, 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double Latitude);
+                    double.TryParse(words[3].Substring(2), NumberStyles.Float, CultureInfo.InvariantCulture, out double temp);
+                    Latitude += temp * 0.01666666666666666666666666666667;
 
-                //average the speed
-                AverageTheSpeed();
+                    if (words[4] == "S")
+                    {
+                        Latitude *= -1;
+                        hemisphere = 'S';
+                    }
+                    else { hemisphere = 'N'; }
+                    mf.Latitude = Latitude;
+
+                    //get longitude and convert to decimal degrees
+                    double.TryParse(words[5].Substring(0, 3), NumberStyles.Float, CultureInfo.InvariantCulture, out double Longitude);
+                    double.TryParse(words[5].Substring(3), NumberStyles.Float, CultureInfo.InvariantCulture, out temp);
+                    Longitude += temp * 0.01666666666666666666666666666667;
+
+                    if (words[6] == "W") Longitude *= -1;
+                    mf.Longitude = Longitude;
+                    
+                    mf.UpdateFixPosition();
+                }
             }
         }
 
@@ -681,37 +587,6 @@ Field	Meaning
         {
             //average the speed
             mf.avgSpeed = (mf.avgSpeed * 0.65) + (speed * 0.35);
-        }
-
-        public void ToUTM_FixConvergenceAngle()
-        {
-            #region Convergence
-            
-            double[] xy = DecDeg2UTM(latitude, longitude);
-            //keep a copy of actual easting and northings
-            actualEasting = xy[0];
-            actualNorthing = xy[1];
-
-            //if a field is open, the real one is subtracted from the integer
-            fix.Easting = xy[0] - utmEast + fixOffset.Easting;
-            fix.Northing = xy[1] - utmNorth + fixOffset.Northing;
-
-            double east = fix.Easting;
-            double nort = fix.Northing;
-            //compensate for the fact the zones lines are a grid and the world is spheroid
-            fix.Easting = (Math.Cos(-convergenceAngle) * east) - (Math.Sin(-convergenceAngle) * nort);
-            fix.Northing = (Math.Sin(-convergenceAngle) * east) + (Math.Cos(-convergenceAngle) * nort);
-
-            UpdatedLatLon = true;
-
-            //east = fix.Easting;
-            //nort = fix.Northing;
-
-            //go back again - programming reference only
-            //fix.Easting = (Math.Cos(convergenceAngle) * east) - (Math.Sin(convergenceAngle) * nort);
-            //fix.Northing = (Math.Sin(convergenceAngle) * east) + (Math.Cos(convergenceAngle) * nort);
-
-            #endregion Convergence
         }
 
         public bool ValidateChecksum(string Sentence)
@@ -744,126 +619,5 @@ Field	Meaning
                 return false;
             }
         }
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        private const double sm_a = 6378137.0;
-
-        private const double sm_b = 6356752.314;
-        private const double UTMScaleFactor = 0.9996;
-        //private double UTMScaleFactor2 = 1.0004001600640256102440976390556;
-
-        private double ArcLengthOfMeridian(double phi)
-        {
-            const double n = (sm_a - sm_b) / (sm_a + sm_b);
-            double alpha = ((sm_a + sm_b) / 2.0) * (1.0 + (Math.Pow(n, 2.0) / 4.0) + (Math.Pow(n, 4.0) / 64.0));
-            double beta = (-3.0 * n / 2.0) + (9.0 * Math.Pow(n, 3.0) * 0.0625) + (-3.0 * Math.Pow(n, 5.0) / 32.0);
-            double gamma = (15.0 * Math.Pow(n, 2.0) * 0.0625) + (-15.0 * Math.Pow(n, 4.0) / 32.0);
-            double delta = (-35.0 * Math.Pow(n, 3.0) / 48.0) + (105.0 * Math.Pow(n, 5.0) / 256.0);
-            double epsilon = (315.0 * Math.Pow(n, 4.0) / 512.0);
-            return alpha * (phi + (beta * Math.Sin(2.0 * phi))
-                    + (gamma * Math.Sin(4.0 * phi))
-                    + (delta * Math.Sin(6.0 * phi))
-                    + (epsilon * Math.Sin(8.0 * phi)));
-        }
-
-        private double[] MapLatLonToXY(double phi, double lambda, double lambda0)
-        {
-            double[] xy = new double[2];
-            double ep2 = (Math.Pow(sm_a, 2.0) - Math.Pow(sm_b, 2.0)) / Math.Pow(sm_b, 2.0);
-            double nu2 = ep2 * Math.Pow(Math.Cos(phi), 2.0);
-            double n = Math.Pow(sm_a, 2.0) / (sm_b * Math.Sqrt(1 + nu2));
-            double t = Math.Tan(phi);
-            double t2 = t * t;
-            double l = lambda - lambda0;
-            double l3Coef = 1.0 - t2 + nu2;
-            double l4Coef = 5.0 - t2 + (9 * nu2) + (4.0 * (nu2 * nu2));
-            double l5Coef = 5.0 - (18.0 * t2) + (t2 * t2) + (14.0 * nu2) - (58.0 * t2 * nu2);
-            double l6Coef = 61.0 - (58.0 * t2) + (t2 * t2) + (270.0 * nu2) - (330.0 * t2 * nu2);
-            double l7Coef = 61.0 - (479.0 * t2) + (179.0 * (t2 * t2)) - (t2 * t2 * t2);
-            double l8Coef = 1385.0 - (3111.0 * t2) + (543.0 * (t2 * t2)) - (t2 * t2 * t2);
-
-            /* Calculate easting (x) */
-            xy[0] = (n * Math.Cos(phi) * l)
-                + (n / 6.0 * Math.Pow(Math.Cos(phi), 3.0) * l3Coef * Math.Pow(l, 3.0))
-                + (n / 120.0 * Math.Pow(Math.Cos(phi), 5.0) * l5Coef * Math.Pow(l, 5.0))
-                + (n / 5040.0 * Math.Pow(Math.Cos(phi), 7.0) * l7Coef * Math.Pow(l, 7.0));
-
-            /* Calculate northing (y) */
-            xy[1] = ArcLengthOfMeridian(phi)
-                + (t / 2.0 * n * Math.Pow(Math.Cos(phi), 2.0) * Math.Pow(l, 2.0))
-                + (t / 24.0 * n * Math.Pow(Math.Cos(phi), 4.0) * l4Coef * Math.Pow(l, 4.0))
-                + (t / 720.0 * n * Math.Pow(Math.Cos(phi), 6.0) * l6Coef * Math.Pow(l, 6.0))
-                + (t / 40320.0 * n * Math.Pow(Math.Cos(phi), 8.0) * l8Coef * Math.Pow(l, 8.0));
-
-            return xy;
-        }
-
-        public double[] DecDeg2UTM(double latitude, double longitude)
-        {
-            //only calculate the zone once!
-            if (!mf.isGPSPositionInitialized) zone = Math.Floor((longitude + 180.0) * 0.16666666666666666666666666666667) + 1;
-
-            double[] xy = MapLatLonToXY(latitude * 0.01745329251994329576923690766743,
-                                        longitude * 0.01745329251994329576923690766743,
-                                        (-183.0 + (zone * 6.0)) * 0.01745329251994329576923690766743);
-
-            xy[0] = (xy[0] * UTMScaleFactor) + 500000.0;
-            xy[1] *= UTMScaleFactor;
-            if (xy[1] < 0.0)
-                xy[1] += 10000000.0;
-            return xy;
-        }
     }
 }
-
-//                #region $GPRMC
-
-//                //GPRMC parsing of the sentence
-//                //make sure there aren't missing coords in sentence
-//                if (words[0] == "$GPRMC" & words[3] != "" & words[4] != "" & words[5] != "" & words[6] != "")
-//                {
-//                    //Status
-//                    if (words[2] == String.Empty) status = "z";
-//                    else
-//                    {
-//                        try { status = words[2]; }
-//                        catch (ArgumentNullException) { }
-//                    }
-
-//                    //Date and Time
-//                    if (words[1].Length != 0)
-//                    {
-//                        try
-//                        {
-//                            if (words[1].Length == 6)
-//                            {
-//                                // Only HHMMSS
-//                                utcDateTime = new DateTime(
-//                                    (int.Parse(words[9].Substring(4, 2)) + 2000),
-//                                    int.Parse(words[9].Substring(2, 2)),
-//                                    int.Parse(words[9].Substring(0, 2)),
-//                                    int.Parse(words[1].Substring(0, 2)),
-//                                    int.Parse(words[1].Substring(2, 2)),
-//                                    int.Parse(words[1].Substring(4, 2)));
-//                            }
-//                            else
-//                            {
-//                                // HHMMSS.MS
-//                                utcDateTime = new DateTime(
-//                                    (int.Parse(words[9].Substring(4, 2)) + 2000),
-//                                    int.Parse(words[9].Substring(2, 2)),
-//                                    int.Parse(words[9].Substring(0, 2)),
-//                                    int.Parse(words[1].Substring(0, 2)),
-//                                    int.Parse(words[1].Substring(2, 2)),
-//                                    int.Parse(words[1].Substring(4, 2)),
-//                                    int.Parse(words[1].Substring(7)));
-//                            }
-//                        }
-//                        catch (ArgumentNullException) { }
-//                    }
-
-//                    //update the receive counter that detects loss of communication
-//                    //update that RMC data is newly updated
-//                    updatedRMC = true;
-//                }//end $GPRMC
-//#endregion $GPRMC

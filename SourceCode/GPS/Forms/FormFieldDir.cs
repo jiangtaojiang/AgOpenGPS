@@ -19,7 +19,7 @@ namespace AgOpenGPS
             InitializeComponent();
 
             label1.Text = String.Get("gsEnterFieldName");
-            label2.Text = String.Get("gsDateWillBeAdded");
+            chkAddDate.Text = String.Get("gsAddDate");
             label4.Text = String.Get("gsEnterTask");
             label5.Text = String.Get("gsEnterVehicleUsed");
             Text = String.Get("gsCreateNewField");
@@ -38,7 +38,7 @@ namespace AgOpenGPS
             var cursorPosition = textboxSender.SelectionStart;
             textboxSender.Text = Regex.Replace(textboxSender.Text, Glm.fileRegex, "");
             textboxSender.SelectionStart = cursorPosition;
-
+            
             if (string.IsNullOrEmpty(tboxFieldName.Text.Trim()))
             {
                 btnSave.Enabled = false;
@@ -48,8 +48,10 @@ namespace AgOpenGPS
                 btnSave.Enabled = true;
             }
 
-            lblFilename.Text = tboxFieldName.Text.Trim() + " " + tboxTask.Text.Trim()
-                + " " + tboxVehicle.Text.Trim() + " " + DateTime.Now.ToString("yyyy.MMM.dd HH_mm", CultureInfo.InvariantCulture);
+            lblFilename.Text = tboxFieldName.Text.Trim();
+            if (!string.IsNullOrEmpty(tboxTask.Text.Trim())) lblFilename.Text += " " + tboxTask.Text.Trim();
+            if (!string.IsNullOrEmpty(tboxVehicle.Text.Trim())) lblFilename.Text += " " + tboxVehicle.Text.Trim();
+            if (chkAddDate.Checked) lblFilename.Text += " " + DateTime.Now.ToString("yyyy.MMM.dd HH_mm", CultureInfo.InvariantCulture);
         }
 
         private void TboxTask_TextChanged(object sender, EventArgs e)
@@ -59,8 +61,10 @@ namespace AgOpenGPS
             textboxSender.Text = Regex.Replace(textboxSender.Text, Glm.fileRegex, "");
             textboxSender.SelectionStart = cursorPosition;
 
-            lblFilename.Text = tboxFieldName.Text.Trim() + " " + tboxTask.Text.Trim()
-                + " " + tboxVehicle.Text.Trim() + " " + DateTime.Now.ToString("yyyy.MMM.dd HH_mm", CultureInfo.InvariantCulture);
+            lblFilename.Text = tboxFieldName.Text.Trim();
+            if (!string.IsNullOrEmpty(tboxTask.Text.Trim())) lblFilename.Text += " " + tboxTask.Text.Trim();
+            if (!string.IsNullOrEmpty(tboxVehicle.Text.Trim())) lblFilename.Text += " " + tboxVehicle.Text.Trim();
+            if (chkAddDate.Checked) lblFilename.Text += " " + DateTime.Now.ToString("yyyy.MMM.dd HH_mm", CultureInfo.InvariantCulture);
         }
 
         private void TboxVehicle_TextChanged(object sender, EventArgs e)
@@ -70,8 +74,10 @@ namespace AgOpenGPS
             textboxSender.Text = Regex.Replace(textboxSender.Text, Glm.fileRegex, "");
             textboxSender.SelectionStart = cursorPosition;
 
-            lblFilename.Text = tboxFieldName.Text.Trim() + " " + tboxTask.Text.Trim()
-                + " " + tboxVehicle.Text.Trim() + " " + DateTime.Now.ToString("yyyy.MMM.dd HH_mm", CultureInfo.InvariantCulture);
+            lblFilename.Text = tboxFieldName.Text.Trim();
+            if (!string.IsNullOrEmpty(tboxTask.Text.Trim())) lblFilename.Text += " " + tboxTask.Text.Trim();
+            if (!string.IsNullOrEmpty(tboxVehicle.Text.Trim())) lblFilename.Text += " " + tboxVehicle.Text.Trim();
+            if (chkAddDate.Checked) lblFilename.Text += " " + DateTime.Now.ToString("yyyy.MMM.dd HH_mm", CultureInfo.InvariantCulture);
         }
 
         private void BtnSerialCancel_Click(object sender, EventArgs e)
@@ -84,22 +90,19 @@ namespace AgOpenGPS
             //fill something in
             if (string.IsNullOrEmpty(tboxFieldName.Text.Trim()))
             {
-                Close();
                 return;
             }
 
-            //append date time to name
-
-            mf.currentFieldDirectory = tboxFieldName.Text.Trim() + " ";
+            mf.currentFieldDirectory = tboxFieldName.Text.Trim();
 
             //task
-            if (!string.IsNullOrEmpty(tboxTask.Text.Trim())) mf.currentFieldDirectory += tboxTask.Text.Trim() + " ";
+            if (!string.IsNullOrEmpty(tboxTask.Text.Trim())) mf.currentFieldDirectory += " " + tboxTask.Text.Trim();
 
             //vehicle
-            if (!string.IsNullOrEmpty(tboxVehicle.Text.Trim())) mf.currentFieldDirectory += tboxVehicle.Text.Trim() + " ";
+            if (!string.IsNullOrEmpty(tboxVehicle.Text.Trim())) mf.currentFieldDirectory += " " + tboxVehicle.Text.Trim();
 
             //date
-            mf.currentFieldDirectory += string.Format("{0}", DateTime.Now.ToString("yyyy.MMM.dd HH_mm", CultureInfo.InvariantCulture));
+            if (chkAddDate.Checked) mf.currentFieldDirectory += " " + string.Format("{0}", DateTime.Now.ToString("yyyy.MMM.dd HH_mm", CultureInfo.InvariantCulture));
 
             //get the directory and make sure it exists, create if not
             string dirNewField = mf.fieldsDirectory + mf.currentFieldDirectory + "\\";
@@ -120,26 +123,9 @@ namespace AgOpenGPS
                 }
                 else
                 {
-                        //reset the offsets
-                        mf.pn.utmEast = (int)mf.pn.actualEasting;
-                        mf.pn.utmNorth = (int)mf.pn.actualNorthing;
-
-                        mf.worldGrid.CheckWorldGrid(0, 0);
-
-                        //calculate the central meridian of current zone
-                        mf.pn.centralMeridian = -177 + ((mf.pn.zone - 1) * 6);
-
-                        //Azimuth Error - utm declination
-                        mf.pn.convergenceAngle = Math.Atan(Math.Sin(Glm.ToRadians(mf.pn.latitude))
-                                                    * Math.Tan(Glm.ToRadians(mf.pn.longitude - mf.pn.centralMeridian)));
-                    
-                    //make sure directory exists, or create it
-                    if ((!string.IsNullOrEmpty(directoryName)) && (!Directory.Exists(directoryName)))
-                    { Directory.CreateDirectory(directoryName); }
-
-                    //create the field file header info
-                    mf.FileCreateField();
-                    mf.FileCreateSections();
+                    mf.SetPlaneToLocal(mf.Latitude, mf.Longitude);
+                    mf.StartTasks(null, 1, TaskName.Save);
+                    mf.FileOpenField();
                 }
             }
             catch (Exception ex)
@@ -179,6 +165,14 @@ namespace AgOpenGPS
                 mf.KeyboardToText((TextBox)sender, this);
                 btnSerialCancel.Focus();
             }
+        }
+
+        private void ChkAddDate_CheckedChanged(object sender, EventArgs e)
+        {
+            lblFilename.Text = tboxFieldName.Text.Trim();
+            if (!string.IsNullOrEmpty(tboxTask.Text.Trim())) lblFilename.Text += " " + tboxTask.Text.Trim();
+            if (!string.IsNullOrEmpty(tboxVehicle.Text.Trim())) lblFilename.Text += " " + tboxVehicle.Text.Trim();
+            if (chkAddDate.Checked) lblFilename.Text += " " + DateTime.Now.ToString("yyyy.MMM.dd HH_mm", CultureInfo.InvariantCulture);
         }
     }
 }

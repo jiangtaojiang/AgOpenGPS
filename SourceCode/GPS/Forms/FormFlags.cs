@@ -39,7 +39,6 @@ namespace AgOpenGPS
             timer1.Enabled = false;
             mf.flagNumberPicked = 0;
             mf.FileSaveFlags();
-            mf.flagDubinsList.Clear();
             Close();
         }
 
@@ -87,46 +86,6 @@ namespace AgOpenGPS
                     mf.flagPts[mf.flagNumberPicked - 1].Easting, mf.flagPts[mf.flagNumberPicked - 1].Northing).ToString("N2") + " m";
             else lblDistanceToFlag.Text = (Glm.Distance(steerAxlePosRP,
                 mf.flagPts[mf.flagNumberPicked - 1].Easting, mf.flagPts[mf.flagNumberPicked - 1].Northing) * Glm.m2ft).ToString("N2") + " m";
-
-            bool tt = false;
-            if (tt) MakeDubinsLineFromPivotToFlag();
-        }
-
-        private void MakeDubinsLineFromPivotToFlag()
-        {
-            //if (mf.ABLine.isBtnABLineOn)
-            //{
-            //    mf.ABLine.isBtnABLineOn = false;
-            //    mf.btnABLine.Image = Properties.Resources.ABLineOff;
-            //}
-
-            CDubins.turningRadius = mf.vehicle.minTurningRadius * 3.0;
-            CDubins dubPath = new CDubins();
-
-            // current psition
-            Vec3 steerAxlePosRP = mf.pivotAxlePos;
-
-            //bump it back so you can line up to point
-            Vec3 goal = new Vec3
-            {
-                Easting = mf.flagPts[mf.flagNumberPicked - 1].Easting - (Math.Sin(mf.flagPts[mf.flagNumberPicked - 1].Heading) * 6),
-                Northing = mf.flagPts[mf.flagNumberPicked - 1].Northing - (Math.Cos(mf.flagPts[mf.flagNumberPicked - 1].Heading) * 6),
-                Heading = mf.flagPts[mf.flagNumberPicked - 1].Heading
-            };
-
-            //bump it forward
-            Vec3 pt2 = new Vec3
-            {
-                Easting = steerAxlePosRP.Easting + (Math.Sin(steerAxlePosRP.Heading) * 6),
-                Northing = steerAxlePosRP.Northing + (Math.Cos(steerAxlePosRP.Heading) * 6),
-                Heading = steerAxlePosRP.Heading
-            };
-
-            //get the dubins path vec3 point coordinates of turn
-            mf.flagDubinsList.Clear();
-
-            mf.flagDubinsList = dubPath.GenerateDubins(pt2, goal, mf.gf);
-
         }
 
         private void TboxFlagNotes_Click(object sender, EventArgs e)

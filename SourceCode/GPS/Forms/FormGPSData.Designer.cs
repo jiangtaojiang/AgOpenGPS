@@ -30,8 +30,6 @@
         {
             this.components = new System.ComponentModel.Container();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
-            this.label4 = new System.Windows.Forms.Label();
-            this.label5 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
@@ -40,8 +38,6 @@
             this.lblFixQuality = new System.Windows.Forms.Label();
             this.lblSatsTracked = new System.Windows.Forms.Label();
             this.lblLatitude = new System.Windows.Forms.Label();
-            this.lblEasting = new System.Windows.Forms.Label();
-            this.lblNorthing = new System.Windows.Forms.Label();
             this.lblLongitude = new System.Windows.Forms.Label();
             this.lblAltitude = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
@@ -49,8 +45,6 @@
             this.label9 = new System.Windows.Forms.Label();
             this.lblHDOP = new System.Windows.Forms.Label();
             this.tboxNMEASerial = new System.Windows.Forms.TextBox();
-            this.label11 = new System.Windows.Forms.Label();
-            this.lblZone = new System.Windows.Forms.Label();
             this.label17 = new System.Windows.Forms.Label();
             this.lblSpeed = new System.Windows.Forms.Label();
             this.lblOverlapPercent = new System.Windows.Forms.Label();
@@ -79,8 +73,6 @@
             this.lblSunrise = new System.Windows.Forms.Label();
             this.lblUturnByte = new System.Windows.Forms.Label();
             this.label21 = new System.Windows.Forms.Label();
-            this.lblConvergenceAngle = new System.Windows.Forms.Label();
-            this.label22 = new System.Windows.Forms.Label();
             this.label23 = new System.Windows.Forms.Label();
             this.label24 = new System.Windows.Forms.Label();
             this.lblEastingField = new System.Windows.Forms.Label();
@@ -88,16 +80,6 @@
             this.label27 = new System.Windows.Forms.Label();
             this.label28 = new System.Windows.Forms.Label();
             this.label25 = new System.Windows.Forms.Label();
-            this.txtBoxRecvAutoSteer = new System.Windows.Forms.TextBox();
-            this.txtBoxRecvMachine = new System.Windows.Forms.TextBox();
-            this.label26 = new System.Windows.Forms.Label();
-            this.label29 = new System.Windows.Forms.Label();
-            this.tboxUDPSteer = new System.Windows.Forms.TextBox();
-            this.tboxUDPMachine = new System.Windows.Forms.TextBox();
-            this.label19 = new System.Windows.Forms.Label();
-            this.label30 = new System.Windows.Forms.Label();
-            this.label31 = new System.Windows.Forms.Label();
-            this.tboxUDPSwitch = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // timer1
@@ -106,36 +88,12 @@
             this.timer1.Interval = 250;
             this.timer1.Tick += new System.EventHandler(this.Timer1_Tick);
             // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label4.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.label4.Location = new System.Drawing.Point(9, 69);
-            this.label4.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(56, 16);
-            this.label4.TabIndex = 3;
-            this.label4.Text = "Northing";
-            // 
-            // label5
-            // 
-            this.label5.AutoSize = true;
-            this.label5.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label5.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.label5.Location = new System.Drawing.Point(16, 85);
-            this.label5.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(49, 16);
-            this.label5.TabIndex = 6;
-            this.label5.Text = "Easting";
-            // 
             // label6
             // 
             this.label6.AutoSize = true;
             this.label6.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label6.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.label6.Location = new System.Drawing.Point(151, 120);
+            this.label6.Location = new System.Drawing.Point(21, 69);
             this.label6.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(25, 16);
@@ -215,40 +173,18 @@
             // 
             this.lblLatitude.AutoSize = true;
             this.lblLatitude.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblLatitude.Location = new System.Drawing.Point(176, 120);
+            this.lblLatitude.Location = new System.Drawing.Point(46, 69);
             this.lblLatitude.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblLatitude.Name = "lblLatitude";
             this.lblLatitude.Size = new System.Drawing.Size(62, 16);
             this.lblLatitude.TabIndex = 12;
             this.lblLatitude.Text = "Latitude";
             // 
-            // lblEasting
-            // 
-            this.lblEasting.AutoSize = true;
-            this.lblEasting.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblEasting.Location = new System.Drawing.Point(66, 85);
-            this.lblEasting.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
-            this.lblEasting.Name = "lblEasting";
-            this.lblEasting.Size = new System.Drawing.Size(55, 16);
-            this.lblEasting.TabIndex = 11;
-            this.lblEasting.Text = "Easting";
-            // 
-            // lblNorthing
-            // 
-            this.lblNorthing.AutoSize = true;
-            this.lblNorthing.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblNorthing.Location = new System.Drawing.Point(66, 69);
-            this.lblNorthing.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
-            this.lblNorthing.Name = "lblNorthing";
-            this.lblNorthing.Size = new System.Drawing.Size(63, 16);
-            this.lblNorthing.TabIndex = 10;
-            this.lblNorthing.Text = "Northing";
-            // 
             // lblLongitude
             // 
             this.lblLongitude.AutoSize = true;
             this.lblLongitude.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblLongitude.Location = new System.Drawing.Point(176, 104);
+            this.lblLongitude.Location = new System.Drawing.Point(49, 85);
             this.lblLongitude.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblLongitude.Name = "lblLongitude";
             this.lblLongitude.Size = new System.Drawing.Size(72, 16);
@@ -259,7 +195,7 @@
             // 
             this.lblAltitude.AutoSize = true;
             this.lblAltitude.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblAltitude.Location = new System.Drawing.Point(175, 85);
+            this.lblAltitude.Location = new System.Drawing.Point(297, 120);
             this.lblAltitude.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblAltitude.Name = "lblAltitude";
             this.lblAltitude.Size = new System.Drawing.Size(60, 16);
@@ -272,7 +208,7 @@
             this.label7.AutoSize = true;
             this.label7.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label7.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.label7.Location = new System.Drawing.Point(148, 104);
+            this.label7.Location = new System.Drawing.Point(21, 85);
             this.label7.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(28, 16);
@@ -284,7 +220,7 @@
             this.label8.AutoSize = true;
             this.label8.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label8.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.label8.Location = new System.Drawing.Point(153, 85);
+            this.label8.Location = new System.Drawing.Point(275, 120);
             this.label8.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(23, 16);
@@ -323,29 +259,6 @@
             this.tboxNMEASerial.ReadOnly = true;
             this.tboxNMEASerial.Size = new System.Drawing.Size(500, 58);
             this.tboxNMEASerial.TabIndex = 107;
-            // 
-            // label11
-            // 
-            this.label11.AutoSize = true;
-            this.label11.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label11.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.label11.Location = new System.Drawing.Point(140, 69);
-            this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(36, 16);
-            this.label11.TabIndex = 114;
-            this.label11.Text = "Zone";
-            // 
-            // lblZone
-            // 
-            this.lblZone.AutoSize = true;
-            this.lblZone.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblZone.Location = new System.Drawing.Point(175, 69);
-            this.lblZone.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
-            this.lblZone.Name = "lblZone";
-            this.lblZone.Size = new System.Drawing.Size(39, 16);
-            this.lblZone.TabIndex = 113;
-            this.lblZone.Text = "Zone";
-            this.lblZone.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // label17
             // 
@@ -691,31 +604,6 @@
             this.label21.TabIndex = 467;
             this.label21.Text = "UTurn";
             // 
-            // lblConvergenceAngle
-            // 
-            this.lblConvergenceAngle.AutoSize = true;
-            this.lblConvergenceAngle.BackColor = System.Drawing.Color.Transparent;
-            this.lblConvergenceAngle.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblConvergenceAngle.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.lblConvergenceAngle.Location = new System.Drawing.Point(315, 120);
-            this.lblConvergenceAngle.Name = "lblConvergenceAngle";
-            this.lblConvergenceAngle.Size = new System.Drawing.Size(26, 16);
-            this.lblConvergenceAngle.TabIndex = 470;
-            this.lblConvergenceAngle.Text = "CA";
-            this.lblConvergenceAngle.TextAlign = System.Drawing.ContentAlignment.TopRight;
-            // 
-            // label22
-            // 
-            this.label22.AutoSize = true;
-            this.label22.BackColor = System.Drawing.Color.Transparent;
-            this.label22.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label22.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.label22.Location = new System.Drawing.Point(290, 120);
-            this.label22.Name = "label22";
-            this.label22.Size = new System.Drawing.Size(24, 16);
-            this.label22.TabIndex = 471;
-            this.label22.Text = "CA";
-            // 
             // label23
             // 
             this.label23.AutoSize = true;
@@ -796,146 +684,18 @@
             this.label25.TabIndex = 478;
             this.label25.Text = "Eq Spec";
             // 
-            // txtBoxRecvAutoSteer
-            // 
-            this.txtBoxRecvAutoSteer.BackColor = System.Drawing.SystemColors.Window;
-            this.txtBoxRecvAutoSteer.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtBoxRecvAutoSteer.Location = new System.Drawing.Point(5, 220);
-            this.txtBoxRecvAutoSteer.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.txtBoxRecvAutoSteer.Name = "txtBoxRecvAutoSteer";
-            this.txtBoxRecvAutoSteer.ReadOnly = true;
-            this.txtBoxRecvAutoSteer.Size = new System.Drawing.Size(231, 22);
-            this.txtBoxRecvAutoSteer.TabIndex = 479;
-            this.txtBoxRecvAutoSteer.Text = "127,253,1234,1234,1234,123";
-            // 
-            // txtBoxRecvMachine
-            // 
-            this.txtBoxRecvMachine.BackColor = System.Drawing.SystemColors.Window;
-            this.txtBoxRecvMachine.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtBoxRecvMachine.Location = new System.Drawing.Point(245, 220);
-            this.txtBoxRecvMachine.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.txtBoxRecvMachine.Name = "txtBoxRecvMachine";
-            this.txtBoxRecvMachine.ReadOnly = true;
-            this.txtBoxRecvMachine.Size = new System.Drawing.Size(231, 22);
-            this.txtBoxRecvMachine.TabIndex = 480;
-            // 
-            // label26
-            // 
-            this.label26.AutoSize = true;
-            this.label26.BackColor = System.Drawing.Color.Transparent;
-            this.label26.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label26.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.label26.Location = new System.Drawing.Point(177, 206);
-            this.label26.Name = "label26";
-            this.label26.Size = new System.Drawing.Size(55, 13);
-            this.label26.TabIndex = 481;
-            this.label26.Text = "USB Steer";
-            // 
-            // label29
-            // 
-            this.label29.AutoSize = true;
-            this.label29.BackColor = System.Drawing.Color.Transparent;
-            this.label29.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label29.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.label29.Location = new System.Drawing.Point(405, 205);
-            this.label29.Name = "label29";
-            this.label29.Size = new System.Drawing.Size(68, 13);
-            this.label29.TabIndex = 482;
-            this.label29.Text = "USB Machine";
-            // 
-            // tboxUDPSteer
-            // 
-            this.tboxUDPSteer.BackColor = System.Drawing.SystemColors.Window;
-            this.tboxUDPSteer.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tboxUDPSteer.Location = new System.Drawing.Point(62, 245);
-            this.tboxUDPSteer.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.tboxUDPSteer.Name = "tboxUDPSteer";
-            this.tboxUDPSteer.ReadOnly = true;
-            this.tboxUDPSteer.Size = new System.Drawing.Size(114, 22);
-            this.tboxUDPSteer.TabIndex = 483;
-            this.tboxUDPSteer.Text = "127,253,1234,1234,1234,123";
-            // 
-            // tboxUDPMachine
-            // 
-            this.tboxUDPMachine.BackColor = System.Drawing.SystemColors.Window;
-            this.tboxUDPMachine.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tboxUDPMachine.Location = new System.Drawing.Point(220, 245);
-            this.tboxUDPMachine.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.tboxUDPMachine.Name = "tboxUDPMachine";
-            this.tboxUDPMachine.ReadOnly = true;
-            this.tboxUDPMachine.Size = new System.Drawing.Size(114, 22);
-            this.tboxUDPMachine.TabIndex = 484;
-            this.tboxUDPMachine.Text = "127,253,1234,1234,1234,123";
-            // 
-            // label19
-            // 
-            this.label19.AutoSize = true;
-            this.label19.BackColor = System.Drawing.Color.Transparent;
-            this.label19.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label19.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.label19.Location = new System.Drawing.Point(4, 249);
-            this.label19.Name = "label19";
-            this.label19.Size = new System.Drawing.Size(56, 13);
-            this.label19.TabIndex = 485;
-            this.label19.Text = "UDP Steer";
-            // 
-            // label30
-            // 
-            this.label30.AutoSize = true;
-            this.label30.BackColor = System.Drawing.Color.Transparent;
-            this.label30.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label30.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.label30.Location = new System.Drawing.Point(186, 249);
-            this.label30.Name = "label30";
-            this.label30.Size = new System.Drawing.Size(32, 13);
-            this.label30.TabIndex = 486;
-            this.label30.Text = "Mach";
-            // 
-            // label31
-            // 
-            this.label31.AutoSize = true;
-            this.label31.BackColor = System.Drawing.Color.Transparent;
-            this.label31.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label31.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.label31.Location = new System.Drawing.Point(342, 249);
-            this.label31.Name = "label31";
-            this.label31.Size = new System.Drawing.Size(21, 13);
-            this.label31.TabIndex = 488;
-            this.label31.Text = "Sw";
-            // 
-            // tboxUDPSwitch
-            // 
-            this.tboxUDPSwitch.BackColor = System.Drawing.SystemColors.Window;
-            this.tboxUDPSwitch.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tboxUDPSwitch.Location = new System.Drawing.Point(366, 245);
-            this.tboxUDPSwitch.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.tboxUDPSwitch.Name = "tboxUDPSwitch";
-            this.tboxUDPSwitch.ReadOnly = true;
-            this.tboxUDPSwitch.Size = new System.Drawing.Size(114, 22);
-            this.tboxUDPSwitch.TabIndex = 487;
-            this.tboxUDPSwitch.Text = "127,253,1234,1234,1234,123";
-            // 
             // FormGPSData
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(514, 270);
-            this.Controls.Add(this.tboxUDPSwitch);
-            this.Controls.Add(this.tboxUDPMachine);
-            this.Controls.Add(this.tboxUDPSteer);
-            this.Controls.Add(this.label29);
-            this.Controls.Add(this.label26);
-            this.Controls.Add(this.txtBoxRecvMachine);
-            this.Controls.Add(this.txtBoxRecvAutoSteer);
             this.Controls.Add(this.label25);
             this.Controls.Add(this.lblEastingField);
             this.Controls.Add(this.lblNorthingField);
             this.Controls.Add(this.label27);
             this.Controls.Add(this.label28);
-            this.Controls.Add(this.lblConvergenceAngle);
             this.Controls.Add(this.label24);
             this.Controls.Add(this.label23);
-            this.Controls.Add(this.label22);
             this.Controls.Add(this.lblSunset);
             this.Controls.Add(this.lblSunrise);
             this.Controls.Add(this.lblUturnByte);
@@ -964,12 +724,8 @@
             this.Controls.Add(this.lblTotalFieldArea);
             this.Controls.Add(this.lblSpeed);
             this.Controls.Add(this.lblAreaAppliedMinusOverlap);
-            this.Controls.Add(this.lblZone);
             this.Controls.Add(this.lblLongitude);
             this.Controls.Add(this.lblLatitude);
-            this.Controls.Add(this.lblEasting);
-            this.Controls.Add(this.lblNorthing);
-            this.Controls.Add(this.label11);
             this.Controls.Add(this.tboxNMEASerial);
             this.Controls.Add(this.label9);
             this.Controls.Add(this.lblHDOP);
@@ -979,15 +735,10 @@
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.label5);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.lblSatsTracked);
-            this.Controls.Add(this.label4);
             this.Controls.Add(this.lblFixQuality);
             this.Controls.Add(this.lblStatus);
-            this.Controls.Add(this.label31);
-            this.Controls.Add(this.label30);
-            this.Controls.Add(this.label19);
             this.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
             this.MaximizeBox = false;
@@ -1005,8 +756,6 @@
         #endregion
 
         private System.Windows.Forms.Timer timer1;
-        private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
@@ -1015,8 +764,6 @@
         private System.Windows.Forms.Label lblFixQuality;
         private System.Windows.Forms.Label lblSatsTracked;
         private System.Windows.Forms.Label lblLatitude;
-        private System.Windows.Forms.Label lblEasting;
-        private System.Windows.Forms.Label lblNorthing;
         private System.Windows.Forms.Label lblLongitude;
         private System.Windows.Forms.Label lblAltitude;
         private System.Windows.Forms.Label label7;
@@ -1024,8 +771,6 @@
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.Label lblHDOP;
         private System.Windows.Forms.TextBox tboxNMEASerial;
-        private System.Windows.Forms.Label label11;
-        private System.Windows.Forms.Label lblZone;
         private System.Windows.Forms.Label label17;
         private System.Windows.Forms.Label lblSpeed;
         private System.Windows.Forms.Label lblOverlapPercent;
@@ -1054,8 +799,6 @@
         private System.Windows.Forms.Label lblSunrise;
         private System.Windows.Forms.Label lblUturnByte;
         private System.Windows.Forms.Label label21;
-        public System.Windows.Forms.Label lblConvergenceAngle;
-        private System.Windows.Forms.Label label22;
         private System.Windows.Forms.Label label23;
         private System.Windows.Forms.Label label24;
         private System.Windows.Forms.Label lblEastingField;
@@ -1063,15 +806,5 @@
         private System.Windows.Forms.Label label27;
         private System.Windows.Forms.Label label28;
         private System.Windows.Forms.Label label25;
-        private System.Windows.Forms.TextBox txtBoxRecvAutoSteer;
-        private System.Windows.Forms.TextBox txtBoxRecvMachine;
-        private System.Windows.Forms.Label label26;
-        private System.Windows.Forms.Label label29;
-        private System.Windows.Forms.TextBox tboxUDPSteer;
-        private System.Windows.Forms.TextBox tboxUDPMachine;
-        private System.Windows.Forms.Label label19;
-        private System.Windows.Forms.Label label30;
-        private System.Windows.Forms.Label label31;
-        private System.Windows.Forms.TextBox tboxUDPSwitch;
     }
 }

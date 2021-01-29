@@ -22,8 +22,8 @@ namespace AgOpenGPS
         private void BtnRecord_Click(object sender, EventArgs e)
         {
             btnRecord.ForeColor = Color.Red;
-            if (mf.yt.youFileList.Count > 0) mf.yt.youFileList.Clear();
-            mf.yt.isRecordingCustomYouTurn = true;
+            if (mf.Guidance.youFileList.Count > 0) mf.Guidance.youFileList.Clear();
+            mf.Guidance.isRecordingCustomYouTurn = true;
             btnRecord.Enabled = false;
             btnStop.Enabled = true;
         }
@@ -31,24 +31,24 @@ namespace AgOpenGPS
         private void BtnStop_Click(object sender, EventArgs e)
         {
             //go make the list
-            mf.yt.isRecordingCustomYouTurn = false;
+            mf.Guidance.isRecordingCustomYouTurn = false;
 
             //first one is the reference the rest are subtracted from, remove it.
-            mf.yt.youFileList.RemoveAt(0);
+            mf.Guidance.youFileList.RemoveAt(0);
 
-            int numShapePoints = mf.yt.youFileList.Count;
+            int numShapePoints = mf.Guidance.youFileList.Count;
             int i;
             Vec2[] pt = new Vec2[numShapePoints];
 
             //put the driven list into an array
             for (i = 0; i < numShapePoints; i++)
             {
-                pt[i].Easting = mf.yt.youFileList[i].Easting;
-                pt[i].Northing = mf.yt.youFileList[i].Northing;
+                pt[i].Easting = mf.Guidance.youFileList[i].Easting;
+                pt[i].Northing = mf.Guidance.youFileList[i].Northing;
             }
 
             //empty out the youFileList
-            mf.yt.youFileList.Clear();
+            mf.Guidance.youFileList.Clear();
 
             //rotate pattern to match AB Line heading
             double head = (mf.Guidance.CurrentLine < mf.Guidance.Lines.Count && mf.Guidance.CurrentLine > -1) ? mf.Guidance.Lines[mf.Guidance.CurrentLine].Heading : 0;
@@ -83,19 +83,19 @@ namespace AgOpenGPS
             {
                 pt[i].Easting *= adjustFactor;
                 pt[i].Northing *= adjustFactor;
-                mf.yt.youFileList.Add(pt[i]);
+                mf.Guidance.youFileList.Add(pt[i]);
             }
 
             //Save the file.
             string Data = "";
-            Data += mf.yt.youFileList[0].Easting + "," + mf.yt.youFileList[0].Northing;
-            for (i = 1; i < mf.yt.youFileList.Count; i++)
-                Data += "\r\n" + mf.yt.youFileList[i].Easting + "," + mf.yt.youFileList[i].Northing;
+            Data += mf.Guidance.youFileList[0].Easting + "," + mf.Guidance.youFileList[0].Northing;
+            for (i = 1; i < mf.Guidance.youFileList.Count; i++)
+                Data += "\r\n" + mf.Guidance.youFileList[i].Easting + "," + mf.Guidance.youFileList[i].Northing;
 
             Properties.Settings.Default.Custom = Data;
             Properties.Settings.Default.Save();
 
-            mf.yt.LoadYouTurnShapeFromData(Properties.Settings.Default.Custom);
+            mf.Guidance.LoadYouTurnShapeFromData(Properties.Settings.Default.Custom);
             Close();
         }
 

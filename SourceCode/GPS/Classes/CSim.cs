@@ -86,8 +86,7 @@ namespace AgOpenGPS
             }
 
             //calc the speed
-            speed = Math.Abs(Math.Round(1.944 * stepDistance, 1));//testing for backing up
-            //lblSpeed.Text = (Math.Round(1.852 * speed, 1)).ToString();
+            speed = Math.Abs(Math.Round(1.944 * stepDistance, 1));
 
             //BuildOGI();
             BuildGGA();
@@ -108,7 +107,7 @@ namespace AgOpenGPS
 
             //sbSendText.Append(sbOGI.ToString());
 
-            mf.pn.rawBuffer += sbSendText.ToString();
+            mf.pn.ParseNMEA(sbSendText.ToString());
 
             if (mf.isLogNMEA)
             {

@@ -1,17 +1,14 @@
 ﻿using OpenTK.Graphics.OpenGL;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace AgOpenGPS
 {
-    public class CGuidance
+    public partial class CGuidance
     {
         public double GuidanceWidth, GuidanceOverlap, GuidanceOffset, WidthMinusOverlap;
-
-
-        //pointers to mainform controls
-        private readonly FormGPS mf;
 
         //flag for starting stop adding points
         public bool BtnGuidanceOn, isOkToAddPoints;
@@ -24,11 +21,11 @@ namespace AgOpenGPS
         public int A, B, CurrentLine = -1, CurrentEditLine = -1, tryoutcurve = -1, CurrentTramLine = -1;
 
         //the list of points of curve to drive on
-        public List<Vec3> curList = new List<Vec3>();
-        public List<Vec3> smooList = new List<Vec3>();
+        public List<Vec2> curList = new List<Vec2>();
+        public List<Vec2> smooList = new List<Vec2>();
         public List<CGuidanceLine> Lines = new List<CGuidanceLine>();
         public bool isEditing;
-        public List<List<List<Vec3>>> ExtraGuidanceLines = new List<List<List<Vec3>>>();
+        public List<List<List<Vec2>>> ExtraGuidanceLines = new List<List<List<Vec2>>>();
 
         public CGuidance(FormGPS _f)
         {
@@ -37,6 +34,18 @@ namespace AgOpenGPS
             GuidanceOverlap = Properties.Vehicle.Default.GuidanceOverlap;
             WidthMinusOverlap = GuidanceWidth - GuidanceOverlap;
             GuidanceOffset = Properties.Vehicle.Default.GuidanceOffset;
+
+            youTurnStartOffset = Properties.Vehicle.Default.set_youTurnDistance;
+            rowSkipsWidth = Properties.Vehicle.Default.set_youSkipWidth;
+            YouTurnType = Properties.Vehicle.Default.Youturn_Type;
+
+            TramOffset = Properties.Settings.Default.setTram_offset;
+            TramWidth = Properties.Settings.Default.setTram_eqWidth;
+            TramWheelTrack = Properties.Settings.Default.setTram_wheelSpacing;
+            TramWheelWidth = Properties.Settings.Default.Tram_wheelWidth;
+            TramHalfWheelTrack = TramWheelTrack * 0.5;
+            TramPasses = Properties.Settings.Default.setTram_passes;
+            TramDisplayMode = 0;
         }
 
         public void DrawLine()
@@ -100,8 +109,10 @@ namespace AgOpenGPS
 
                         if (isEditing && ptCount > 0)
                         {
-                            Vec3 pivot = mf.pivotAxlePos;
                             GL.Vertex3(Lines[CurrentEditLine].Segments[ptCount - 1].Easting, Lines[CurrentEditLine].Segments[ptCount - 1].Northing, 0);
+                            Vec3 pivot = mf.pivotAxlePos;
+                            pivot.Northing += Math.Sin(pivot.Heading) * -mf.Guidance.GuidanceOffset;
+                            pivot.Easting += Math.Cos(pivot.Heading) * mf.Guidance.GuidanceOffset;
                             GL.Vertex3(pivot.Easting, pivot.Northing, 0);
                         }
                     }
@@ -144,7 +155,6 @@ namespace AgOpenGPS
                         GL.Color3(0.56f, 0.650f, 0.650f);
                         GL.Enable(EnableCap.LineStipple);
                         GL.LineStipple(1, 0x0101);
-
                         GL.LineWidth(mf.lineWidth);
 
                         for (int i = 0; i < ExtraGuidanceLines.Count; i++)
@@ -219,332 +229,10 @@ namespace AgOpenGPS
                         GL.End();
                     }
 
-                    mf.yt.DrawYouTurn();
+                    mf.Guidance.DrawYouTurn();
                 }
             }
             GL.PointSize(1.0f);
-        }
-
-        public void BuildTram()
-        {
-            mf.tram.TramList.Clear();
-
-            if (mf.bnd.bndArr.Count > 0) mf.tram.CreateBndTramRef();
-
-            if (CurrentTramLine > -1 && CurrentTramLine < Lines.Count)
-            {
-                if (Lines[CurrentTramLine].Mode == Gmode.AB || Lines[CurrentTramLine].Mode == Gmode.Heading)
-                    BuildTram2();
-                else
-                {
-
-                    Vec3 Point;
-                    Vec3 Point2;
-
-                    List<List<Vec3>> BuildLeft = new List<List<Vec3>>();
-                    List<List<Vec3>> BuildRight = new List<List<Vec3>>();
-                    for (double i = 0.5; i < mf.tram.passes; i++)
-                    {
-                        List<Vec3> Build = new List<Vec3>();
-                        List<Vec3> Build2 = new List<Vec3>();
-                        double Offset = (mf.tram.tramWidth * i) - WidthMinusOverlap / 2 + mf.tram.abOffset - mf.tram.halfWheelTrack;
-                        double Offset2 = (mf.tram.tramWidth * i) - WidthMinusOverlap / 2 + mf.tram.abOffset + mf.tram.halfWheelTrack;
-                        for (int j = 0; j < Lines[CurrentTramLine].Segments.Count; j++)
-                        {
-                            double CosHeading = Math.Cos(Lines[CurrentTramLine].Segments[j].Heading);
-                            double SinHeading = Math.Sin(Lines[CurrentTramLine].Segments[j].Heading);
-
-                            Point = Lines[CurrentTramLine].Segments[j];
-                            Point.Northing += SinHeading * -Offset;
-                            Point.Easting += CosHeading * Offset;
-
-                            Point2 = Lines[CurrentTramLine].Segments[j];
-                            Point2.Northing += SinHeading * -Offset2;
-                            Point2.Easting += CosHeading * Offset2;
-
-                            if (Build.Count > 0)
-                            {
-                                double dist = ((Point.Easting - Build[Build.Count - 1].Easting) * (Point.Easting - Build[Build.Count - 1].Easting)) + ((Point.Northing - Build[Build.Count - 1].Northing) * (Point.Northing - Build[Build.Count - 1].Northing));
-                                if (dist > 1) Build.Add(Point);
-                            }
-                            else Build.Add(Point);
-
-                            if (Build2.Count > 0)
-                            {
-                                double dist = ((Point2.Easting - Build2[Build2.Count - 1].Easting) * (Point2.Easting - Build2[Build2.Count - 1].Easting)) + ((Point2.Northing - Build2[Build2.Count - 1].Northing) * (Point2.Northing - Build2[Build2.Count - 1].Northing));
-                                if (dist > 1) Build2.Add(Point2);
-                            }
-                            else Build2.Add(Point2);
-                        }
-                        BuildLeft.AddRange(Build.ClipPolyLine(mf.bnd.bndArr[0].bndLine, Lines[CurrentTramLine].Mode == Gmode.Boundary, Offset, CancellationToken.None));
-                        BuildRight.AddRange(Build2.ClipPolyLine(mf.bnd.bndArr[0].bndLine, Lines[CurrentTramLine].Mode == Gmode.Boundary, Offset, CancellationToken.None));
-                    }
-
-                    for (int k = 0; k < BuildLeft.Count; k++)
-                    {
-                        BuildLeft[k].CalculateRoundedCorner(mf.vehicle.minTurningRadius, Lines[CurrentTramLine].Mode == Gmode.Boundary, 0.0436332, CancellationToken.None, true, true, mf.tram.halfWheelTrack);
-
-                        if (Lines[CurrentTramLine].Mode == Gmode.Boundary) BuildLeft[k].Add(BuildLeft[k][0]);
-
-                        mf.tram.TramList.Add(new Trams());
-                        int tramidx = mf.tram.TramList.Count - 1;
-
-                        for (int l = 0; l < BuildLeft[k].Count; l += 2)
-                        {
-                            Point = BuildLeft[k][l];
-
-                            double CosHeading = Math.Cos(BuildLeft[k][l].Heading);
-                            double SinHeading = Math.Sin(BuildLeft[k][l].Heading);
-
-                            Point.Northing += SinHeading * (mf.tram.WheelWidth / 2);
-                            Point.Easting += CosHeading * (-mf.tram.WheelWidth / 2);
-                            mf.tram.TramList[tramidx].Left.Add(new Vec2(Point.Northing, Point.Easting));
-                            Point.Northing += SinHeading * -mf.tram.WheelWidth;
-                            Point.Easting += CosHeading * mf.tram.WheelWidth;
-                            mf.tram.TramList[tramidx].Left.Add(new Vec2(Point.Northing, Point.Easting));
-                        }
-                    }
-                    for (int k = 0; k < BuildRight.Count; k++)
-                    {
-                        BuildRight[k].CalculateRoundedCorner(mf.vehicle.minTurningRadius, Lines[CurrentTramLine].Mode == Gmode.Boundary, 0.0436332, CancellationToken.None, true, false, mf.tram.halfWheelTrack);
-
-                        if (Lines[CurrentTramLine].Mode == Gmode.Boundary) BuildRight[k].Add(BuildRight[k][0]);
-
-                        mf.tram.TramList.Add(new Trams());
-                        int tramidx = mf.tram.TramList.Count - 1;
-
-                        for (int l = 0; l < BuildRight[k].Count; l += 2)
-                        {
-                            Point = BuildRight[k][l];
-
-                            double CosHeading = Math.Cos(BuildRight[k][l].Heading);
-                            double SinHeading = Math.Sin(BuildRight[k][l].Heading);
-
-                            Point.Northing += SinHeading * (mf.tram.WheelWidth / 2);
-                            Point.Easting += CosHeading * (-mf.tram.WheelWidth / 2);
-                            mf.tram.TramList[tramidx].Right.Add(new Vec2(Point.Northing, Point.Easting));
-                            Point.Northing += SinHeading * -mf.tram.WheelWidth;
-                            Point.Easting += CosHeading * mf.tram.WheelWidth;
-                            mf.tram.TramList[tramidx].Right.Add(new Vec2(Point.Northing, Point.Easting));
-                        }
-                    }
-                }
-            }
-        }
-
-
-        public void BuildTram2()
-        {
-            double hsin = Math.Sin(Lines[CurrentTramLine].Heading);
-            double hcos = Math.Cos(Lines[CurrentTramLine].Heading);
-
-            int tramcount = mf.tram.TramList.Count;
-
-            for (double i = 0.5; i < mf.tram.passes; i++)
-            {
-                double Offset = (mf.tram.tramWidth * i) - WidthMinusOverlap / 2 - mf.tram.halfWheelTrack + mf.tram.abOffset;
-
-                Vec2 pos1A = new Vec2(Lines[CurrentTramLine].Segments[0]);
-                pos1A.Northing += hcos * mf.maxCrossFieldLength + hsin * -Offset;
-                pos1A.Easting += hsin * mf.maxCrossFieldLength + hcos * Offset;
-
-                Vec2 pos1B = new Vec2(Lines[CurrentTramLine].Segments[1]);
-                pos1B.Northing += hcos * -mf.maxCrossFieldLength + hsin * -Offset;
-                pos1B.Easting += hsin * -mf.maxCrossFieldLength + hcos * Offset;
-
-                Vec2 pos2A = pos1A;
-                pos2A.Northing += hsin * -mf.tram.wheelTrack;
-                pos2A.Easting += hcos * mf.tram.wheelTrack;
-
-                Vec2 pos2B = pos1B;
-                pos2B.Northing += hsin * -mf.tram.wheelTrack;
-                pos2B.Easting += hcos * mf.tram.wheelTrack;
-
-
-                if (mf.bnd.bndArr.Count > 0 && mf.tram.TramList[0].Left.Count > 2)
-                {
-                    List<Vec4> Crossings1 = new List<Vec4>();
-                    Vec2 crossing = new Vec2();
-
-                    for (int m = 0; m < tramcount; m++)
-                    {
-                        Crossings1.FindCrossingPoints(mf.tram.TramList[m].Left, pos1A, pos1B, 0);
-                    }
-
-                    if (Crossings1.Count > 1)
-                    {
-                        List<Vec4> Crossings2 = new List<Vec4>();
-                        for (int m = 0; m < tramcount; m++)
-                        {
-                            Crossings2.FindCrossingPoints(mf.tram.TramList[m].Left, pos2A, pos2B, 0);
-                        }
-
-                        if (Crossings2.Count > 1)
-                        {
-                            Crossings1.Sort((x, y) => x.Time.CompareTo(y.Time));
-                            Crossings2.Sort((x, y) => x.Time.CompareTo(y.Time));
-
-                            if (Crossings1.Count - 1 > Crossings2.Count)
-                            {
-                                for (int j = 0; j + 1 < Crossings2.Count; j += 2)
-                                {
-                                    for (int l = j + 1; l + 1 < Crossings1.Count; l += 2)
-                                    {
-                                        if (Crossings2[j].Time < Crossings1[l].Time && Crossings1[l + 1].Time < Crossings2[j + 1].Time)
-                                        {
-                                            crossing = new Vec2(Crossings1[l + 1].Northing, Crossings1[l + 1].Easting);
-                                            crossing.Northing += hsin * mf.tram.wheelTrack;
-                                            crossing.Easting += hcos * mf.tram.wheelTrack;
-                                            Crossings2.Insert(j + 1, new Vec4(crossing.Northing, crossing.Easting, 0, Crossings1[l].Time, 0));
-                                            crossing = new Vec2(Crossings1[l].Northing, Crossings1[l].Easting);
-                                            crossing.Northing += hsin * mf.tram.wheelTrack;
-                                            crossing.Easting += hcos * mf.tram.wheelTrack;
-                                            Crossings2.Insert(j + 1, new Vec4(crossing.Northing, crossing.Easting, 0, Crossings1[l].Time, 0));
-                                        }
-                                        else if (Crossings2[j + 1].Time < Crossings1[j].Time && Crossings2[j + 1].Time < Crossings1[j + 1].Time)
-                                        {
-                                            Crossings1.RemoveAt(j);
-                                            Crossings1.RemoveAt(j);
-                                        }
-                                        else if (Crossings2[j + 1].Time > Crossings1[j].Time && Crossings2[j + 1].Time > Crossings1[j + 1].Time)
-                                        {
-                                            Crossings1.RemoveAt(j);
-                                            Crossings1.RemoveAt(j);
-                                        }
-
-                                    }
-                                }
-                                Crossings2.Sort((x, y) => x.Time.CompareTo(y.Time));
-                            }
-                            else if (Crossings2.Count - 1 > Crossings1.Count)
-                            {
-                                for (int j = 0; j + 1 < Crossings1.Count; j += 2)
-                                {
-                                    for (int l = j + 1; l + 1 < Crossings2.Count; l += 2)
-                                    {
-                                        if (Crossings1[j].Time < Crossings2[l].Time && Crossings2[l + 1].Time < Crossings1[j + 1].Time)
-                                        {
-                                            crossing = new Vec2(Crossings2[l + 1].Northing, Crossings2[l + 1].Easting);
-                                            crossing.Northing += hsin * mf.tram.wheelTrack;
-                                            crossing.Easting += hcos * -mf.tram.wheelTrack;
-                                            Crossings1.Insert(j + 1, new Vec4(crossing.Northing, crossing.Easting, 0, Crossings2[l].Time, 0));
-                                            crossing = new Vec2(Crossings2[l].Northing, Crossings2[l].Easting);
-                                            crossing.Northing += hsin * mf.tram.wheelTrack;
-                                            crossing.Easting += hcos * -mf.tram.wheelTrack;
-                                            Crossings1.Insert(j + 1, new Vec4(crossing.Northing, crossing.Easting, 0, Crossings2[l].Time, 0));
-
-                                        }
-                                        else if (Crossings1[j + 1].Time < Crossings2[j].Time && Crossings1[j + 1].Time < Crossings2[j + 1].Time)
-                                        {
-                                            Crossings2.RemoveAt(j);
-                                            Crossings2.RemoveAt(j);
-                                        }
-                                        else if (Crossings1[j + 1].Time > Crossings2[j].Time && Crossings1[j + 1].Time > Crossings2[j + 1].Time)
-                                        {
-                                            Crossings2.RemoveAt(j);
-                                            Crossings2.RemoveAt(j);
-                                        }
-                                    }
-                                }
-                                Crossings1.Sort((x, y) => x.Time.CompareTo(y.Time));
-                            }
-                            for (int j = 0; j + 1 < Crossings1.Count; j += 2)
-                            {
-                                if (j + 1 < Crossings2.Count)
-                                {
-                                    mf.tram.TramList.Add(new Trams());
-
-                                    //left of left tram
-                                    crossing = new Vec2(Crossings1[j].Northing, Crossings1[j].Easting);
-                                    crossing.Northing += hcos * -mf.tram.halfWheelTrack + hsin * -(mf.tram.WheelWidth / 2);
-                                    crossing.Easting += hsin * -mf.tram.halfWheelTrack + hcos * (mf.tram.WheelWidth / 2);
-                                    mf.tram.TramList[mf.tram.TramList.Count - 1].Left.Add(crossing);
-
-                                    //right of left tram
-                                    crossing.Northing += hsin * mf.tram.WheelWidth;
-                                    crossing.Easting += hcos * -mf.tram.WheelWidth;
-                                    mf.tram.TramList[mf.tram.TramList.Count - 1].Left.Add(crossing);
-
-                                    //left of left tram
-                                    crossing = new Vec2(Crossings1[j + 1].Northing, Crossings1[j + 1].Easting);
-                                    crossing.Northing += hcos * mf.tram.halfWheelTrack + hsin * -(mf.tram.WheelWidth / 2);
-                                    crossing.Easting += hsin * mf.tram.halfWheelTrack + hcos * (mf.tram.WheelWidth / 2);
-                                    mf.tram.TramList[mf.tram.TramList.Count - 1].Left.Add(crossing);
-                                    //right of left tram
-                                    crossing.Northing += hsin * mf.tram.WheelWidth;
-                                    crossing.Easting += hcos * -mf.tram.WheelWidth;
-                                    mf.tram.TramList[mf.tram.TramList.Count - 1].Left.Add(crossing);
-
-
-                                    //left of right tram
-                                    crossing = new Vec2(Crossings2[j].Northing, Crossings2[j].Easting);
-                                    crossing.Northing += hcos * -mf.tram.halfWheelTrack + hsin * -(mf.tram.WheelWidth / 2);
-                                    crossing.Easting += hsin * -mf.tram.halfWheelTrack + hcos * (mf.tram.WheelWidth / 2);
-                                    mf.tram.TramList[mf.tram.TramList.Count - 1].Right.Add(crossing);
-                                    //right of right tram
-                                    crossing.Northing += hsin * mf.tram.WheelWidth;
-                                    crossing.Easting += hcos * -mf.tram.WheelWidth;
-                                    mf.tram.TramList[mf.tram.TramList.Count - 1].Right.Add(crossing);
-
-
-
-                                    //left of right tram
-                                    crossing = new Vec2(Crossings2[j + 1].Northing, Crossings2[j + 1].Easting);
-                                    crossing.Northing += hcos * mf.tram.halfWheelTrack + hsin * -(mf.tram.WheelWidth / 2);
-                                    crossing.Easting += hsin * mf.tram.halfWheelTrack + hcos * (mf.tram.WheelWidth / 2);
-                                    mf.tram.TramList[mf.tram.TramList.Count - 1].Right.Add(crossing);
-                                    //right of right tram
-                                    crossing.Northing += hsin * mf.tram.WheelWidth;
-                                    crossing.Easting += hcos * -mf.tram.WheelWidth;
-                                    mf.tram.TramList[mf.tram.TramList.Count - 1].Right.Add(crossing);
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    mf.tram.TramList.Add(new Trams());
-
-                    //left of left tram
-                    pos1A.Northing += hcos * -mf.tram.halfWheelTrack + hsin * (mf.tram.WheelWidth / 2);
-                    pos1A.Easting += hsin * -mf.tram.halfWheelTrack + hcos * -(mf.tram.WheelWidth / 2);
-                    mf.tram.TramList[mf.tram.TramList.Count - 1].Left.Add(pos1A);
-                    //right of left tram
-                    pos1A.Northing += hsin * -mf.tram.WheelWidth;
-                    pos1A.Easting += hcos * mf.tram.WheelWidth;
-                    mf.tram.TramList[mf.tram.TramList.Count - 1].Left.Add(pos1A);
-
-                    //left of left tram
-                    pos1B.Northing += hcos * mf.tram.halfWheelTrack + hsin * (mf.tram.WheelWidth / 2);
-                    pos1B.Easting += hsin * mf.tram.halfWheelTrack + hcos * -(mf.tram.WheelWidth / 2);
-                    mf.tram.TramList[mf.tram.TramList.Count - 1].Left.Add(pos1B);
-                    //right of left tram
-                    pos1B.Northing += hsin * -mf.tram.WheelWidth;
-                    pos1B.Easting += hcos * mf.tram.WheelWidth;
-                    mf.tram.TramList[mf.tram.TramList.Count - 1].Left.Add(pos1B);
-
-
-                    //right of right tram
-                    pos2A.Northing += hcos * -mf.tram.halfWheelTrack + hsin * -(mf.tram.WheelWidth / 2);
-                    pos2A.Easting += hsin * -mf.tram.halfWheelTrack + hcos * (mf.tram.WheelWidth / 2);
-                    mf.tram.TramList[mf.tram.TramList.Count - 1].Right.Add(pos2A);
-                    //left of right tram
-                    pos2A.Northing += hsin * mf.tram.WheelWidth;
-                    pos2A.Easting += hcos * -mf.tram.WheelWidth;
-                    mf.tram.TramList[mf.tram.TramList.Count - 1].Right.Add(pos2A);
-
-                    //right of right tram
-                    pos2B.Northing += hcos * mf.tram.halfWheelTrack + hsin * -(mf.tram.WheelWidth / 2);
-                    pos2B.Easting += hsin * mf.tram.halfWheelTrack + hcos * (mf.tram.WheelWidth / 2);
-                    mf.tram.TramList[mf.tram.TramList.Count - 1].Right.Add(pos2B);
-                    //left of right tram
-                    pos2B.Northing += hsin * mf.tram.WheelWidth;
-                    pos2B.Easting += hcos * -mf.tram.WheelWidth;
-                    mf.tram.TramList[mf.tram.TramList.Count - 1].Right.Add(pos2B);
-                }
-            }
-
         }
 
         //for calculating for display the averaged new line
@@ -559,7 +247,7 @@ namespace AgOpenGPS
                 if (cnt < 10) return;
 
                 //the temp array
-                Vec3[] arr = new Vec3[cnt];
+                Vec2[] arr = new Vec2[cnt];
 
                 //average them - center weighted average
 
@@ -578,7 +266,6 @@ namespace AgOpenGPS
                     }
                     arr[i].Easting /= cntd;
                     arr[i].Northing /= cntd;
-                    arr[i].Heading = Lines[CurrentEditLine].Segments[i].Heading;
                 }
 
                 //make a list to draw
@@ -597,10 +284,8 @@ namespace AgOpenGPS
                     Lines[Idx].Segments.Reverse();
                     Lines[Idx].Heading += Math.PI;
                     Lines[Idx].Heading %= Glm.twoPI;
-                    if (Lines[Idx].Mode != Gmode.Heading)
-                        Lines[Idx].Segments.CalculateHeading(Lines[Idx].Mode == Gmode.Boundary, CancellationToken.None);
                 }
-                if (Idx == CurrentTramLine && mf.tram.displayMode > 0) BuildTram();
+                if (Idx == CurrentTramLine && mf.Guidance.TramDisplayMode > 0) BuildTram();
                 if (isSmoothWindowOpen) SmoothAB(SmoothCount * 2);
             }
         }
@@ -613,7 +298,6 @@ namespace AgOpenGPS
                 int cnt = smooList.Count;
                 if (cnt < 3) return;
 
-                smooList.CalculateHeading(Lines[CurrentEditLine].Mode == Gmode.Boundary, CancellationToken.None);
                 Lines[CurrentEditLine].Segments.Clear();
                 Lines[CurrentEditLine].Segments.AddRange(smooList);
                 ResetABLine = true;
@@ -636,7 +320,7 @@ namespace AgOpenGPS
 
                 if (Lines[CurrentLine].Mode == Gmode.Spiral)
                 {
-                    minDistance = Glm.Distance(point, Lines[CurrentLine].Segments[0]);
+                    minDistance = Glm.Distance(Lines[CurrentLine].Segments[0], point);
 
                     double RefDist = minDistance / WidthMinusOverlap;
                     if (RefDist < 0) HowManyPathsAway = (int)(RefDist - 0.5);
@@ -659,19 +343,17 @@ namespace AgOpenGPS
                             double x = s * (Math.Cos(round) + (round / Math.PI) * Math.Sin(round));
                             double y = s * (Math.Sin(round) - (round / Math.PI) * Math.Cos(round));
 
-                            Vec3 pt = new Vec3(Lines[CurrentLine].Segments[0].Northing + y, Lines[CurrentLine].Segments[0].Easting + x, 0);
+                            Vec2 pt = new Vec2(Lines[CurrentLine].Segments[0].Easting + x, Lines[CurrentLine].Segments[0].Northing + y);
                             curList.Add(pt);
 
                             double radius = Math.Sqrt(x * x + y * y);
                             circumference = (Glm.twoPI * radius) / (boundaryTriggerDistance);
                         }
-
-                        if (curList.Count > 2) curList.CalculateHeading(true, CancellationToken.None);
                     }
                 }
                 else if (Lines[CurrentLine].Mode == Gmode.Circle)
                 {
-                    minDistance = Glm.Distance(point, Lines[CurrentLine].Segments[0]);
+                    minDistance = Glm.Distance(Lines[CurrentLine].Segments[0], point);
 
                     double RefDist = minDistance / WidthMinusOverlap;
                     if (RefDist < 0) HowManyPathsAway = (int)(RefDist - 0.5);
@@ -694,69 +376,81 @@ namespace AgOpenGPS
 
                         for (double round = 0; round <= Glm.twoPI + 0.00001; round += (Glm.twoPI) / aa)
                         {
-                            Vec3 pt = new Vec3(Lines[CurrentLine].Segments[0].Northing + (Math.Cos(round) * WidthMinusOverlap * HowManyPathsAway), Lines[CurrentLine].Segments[0].Easting + (Math.Sin(round) * WidthMinusOverlap * HowManyPathsAway), 0);
+                            Vec2 pt = new Vec2(Lines[CurrentLine].Segments[0].Easting + (Math.Sin(round) * WidthMinusOverlap * HowManyPathsAway), Lines[CurrentLine].Segments[0].Northing + (Math.Cos(round) * WidthMinusOverlap * HowManyPathsAway));
                             curList.Add(pt);
                         }
-
-                        if (curList.Count > 2) curList.CalculateHeading(true, CancellationToken.None);
                     }
                 }
                 else
                 {
                     if (Lines[CurrentLine].Segments.Count < 2) return;
-                    double minDistA = double.PositiveInfinity, minDistB = double.PositiveInfinity;
-
-                    if (!mf.isAutoSteerBtnOn || ResetABLine)
-                    {
-                        //find the closest 2 points to current fix
-                        for (int t = 0; t < Lines[CurrentLine].Segments.Count; t++)
-                        {
-                            double dist = ((pivot.Easting - Lines[CurrentLine].Segments[t].Easting) * (pivot.Easting - Lines[CurrentLine].Segments[t].Easting))
-                                            + ((pivot.Northing - Lines[CurrentLine].Segments[t].Northing) * (pivot.Northing - Lines[CurrentLine].Segments[t].Northing));
-                            if (dist < minDistA)
-                            {
-                                minDistB = minDistA;
-                                B = A;
-                                minDistA = dist;
-                                A = t;
-                            }
-                            else if (dist < minDistB)
-                            {
-                                minDistB = dist;
-                                B = t;
-                            }
-                        }
-
-                        if (A > B) { int C = A; A = B; B = C; }
-
-                        if (double.IsInfinity(minDistA) || double.IsInfinity(minDistB)) return;
-
-                        //are we going same direction as stripList was created?
-                        isSameWay = Math.PI - Math.Abs(Math.Abs(point.Heading - Lines[CurrentLine].Segments[A].Heading) - Math.PI) < Glm.PIBy2;
-                    }
 
                     double Dy, Dx;
 
                     if (Lines[CurrentLine].Mode == Gmode.Heading)
                     {
+                        if (!mf.isAutoSteerBtnOn || ResetABLine)
+                        {
+                            isSameWay = Math.PI - Math.Abs(Math.Abs(point.Heading - Lines[CurrentLine].Heading) - Math.PI) < Glm.PIBy2;
+                        }
                         double cosHeading = Math.Cos(Lines[CurrentLine].Heading);
                         double sinHeading = Math.Sin(Lines[CurrentLine].Heading);
+
 
                         Dx = 2 * cosHeading * mf.maxCrossFieldLength;
                         Dy = 2 * sinHeading * mf.maxCrossFieldLength;
 
-                        Vec3 Start = new Vec3(Lines[CurrentLine].Segments[0].Northing + cosHeading * -mf.maxCrossFieldLength, Lines[CurrentLine].Segments[0].Easting + sinHeading * -mf.maxCrossFieldLength, 0);
-                        Vec3 Stop = new Vec3(Lines[CurrentLine].Segments[1].Northing + cosHeading * mf.maxCrossFieldLength, Lines[CurrentLine].Segments[1].Easting + sinHeading * mf.maxCrossFieldLength, 0);
+                        Vec3 Start = new Vec3(Lines[CurrentLine].Segments[0].Easting + sinHeading * -mf.maxCrossFieldLength, Lines[CurrentLine].Segments[0].Northing + cosHeading * -mf.maxCrossFieldLength, 0);
+                        Vec3 Stop = new Vec3(Lines[CurrentLine].Segments[1].Easting + sinHeading * mf.maxCrossFieldLength, Lines[CurrentLine].Segments[1].Northing + cosHeading * mf.maxCrossFieldLength, 0);
 
                         distanceFromRefLine = ((Dx * point.Easting) - (Dy * point.Northing) + (Stop.Easting * Start.Northing) - (Stop.Northing * Start.Easting)) / Math.Sqrt((Dx * Dx) + (Dy * Dy));
 
                     }
-                    else if (A < Lines[CurrentLine].Segments.Count && B < Lines[CurrentLine].Segments.Count)
+                    else
                     {
-                        Dx = Lines[CurrentLine].Segments[B].Northing - Lines[CurrentLine].Segments[A].Northing;
-                        Dy = Lines[CurrentLine].Segments[B].Easting - Lines[CurrentLine].Segments[A].Easting;
-                        if (Math.Abs(Dy) < double.Epsilon && Math.Abs(Dx) < double.Epsilon) return;
-                        distanceFromRefLine = ((Dx * point.Easting) - (Dy * point.Northing) + (Lines[CurrentLine].Segments[B].Easting * Lines[CurrentLine].Segments[A].Northing) - (Lines[CurrentLine].Segments[B].Northing * Lines[CurrentLine].Segments[A].Easting)) / Math.Sqrt((Dx * Dx) + (Dy * Dy));
+                        double minDistA = double.PositiveInfinity;
+                        if (!mf.isAutoSteerBtnOn || ResetABLine)
+                        {
+                            int s = Lines[CurrentLine].Segments.Count - 1;
+                            for (int t = 0; t < Lines[CurrentLine].Segments.Count; s = t++)
+                            {
+                                if (t == 0 && Lines[CurrentLine].Mode != Gmode.Boundary) continue;
+
+                                double dist = pivot.FindDistanceToSegment(Lines[CurrentLine].Segments[s], Lines[CurrentLine].Segments[t]);
+
+                                if (dist < minDistA)
+                                {
+                                    minDistA = dist;
+                                    A = t;
+                                    B = s;
+                                }
+                            }
+
+                            if (double.IsInfinity(minDistA)) return;
+
+                            if (A > B) { int C = A; A = B; B = C; }
+                                if (Lines[CurrentLine].Mode == Gmode.Boundary && B == Lines[CurrentLine].Segments.Count - 1 && A == 0) { int C = A; A = B; B = C; }
+
+                            if (A < Lines[CurrentLine].Segments.Count && B < Lines[CurrentLine].Segments.Count)
+                            {
+                                //get the distance from currently active AB line
+                                Dx = Lines[CurrentLine].Segments[B].Northing - Lines[CurrentLine].Segments[A].Northing;
+                                Dy = Lines[CurrentLine].Segments[B].Easting - Lines[CurrentLine].Segments[A].Easting;
+
+                                if (Math.Abs(Dy) < double.Epsilon && Math.Abs(Dx) < double.Epsilon) return;
+
+                                double Heading = Math.Atan2(Dy, Dx);
+                                //are we going same direction as stripList was created?
+                                isSameWay = Math.PI - Math.Abs(Math.Abs(point.Heading - Heading) - Math.PI) < Glm.PIBy2;
+                            }
+                        }
+                        if (A < Lines[CurrentLine].Segments.Count && B < Lines[CurrentLine].Segments.Count)
+                        {
+                            Dx = Lines[CurrentLine].Segments[B].Northing - Lines[CurrentLine].Segments[A].Northing;
+                            Dy = Lines[CurrentLine].Segments[B].Easting - Lines[CurrentLine].Segments[A].Easting;
+                            if (Math.Abs(Dy) < double.Epsilon && Math.Abs(Dx) < double.Epsilon) return;
+                            distanceFromRefLine = ((Dx * point.Easting) - (Dy * point.Northing) + (Lines[CurrentLine].Segments[B].Easting * Lines[CurrentLine].Segments[A].Northing) - (Lines[CurrentLine].Segments[B].Northing * Lines[CurrentLine].Segments[A].Easting)) / Math.Sqrt((Dx * Dx) + (Dy * Dy));
+                        }
                     }
 
                     if (!mf.isAutoSteerBtnOn || ResetABLine)
@@ -785,9 +479,9 @@ namespace AgOpenGPS
                                     if (Count > 0) ExtraGuidanceLines.Clear();
                                     for (double i = -2.5; i < 3; i++)
                                     {
-                                        ExtraGuidanceLines.Add(new List<List<Vec3>>());
+                                        ExtraGuidanceLines.Add(new List<List<Vec2>>());
                                         Gcnt = ExtraGuidanceLines.Count - 1;
-                                        CalculateOffsetList(out List<List<Vec3>> ttt, WidthMinusOverlap * (HowManyPathsAway + i), false);
+                                        CalculateOffsetList(out List<List<Vec2>> ttt, WidthMinusOverlap * (HowManyPathsAway + i), false);
                                         ExtraGuidanceLines[Gcnt] = ttt;
                                     }
                                 }
@@ -796,9 +490,9 @@ namespace AgOpenGPS
                                     for (int i = -1; i >= Up; i--)
                                     {
                                         ExtraGuidanceLines.RemoveAt(5);
-                                        ExtraGuidanceLines.Insert(0, new List<List<Vec3>>());
+                                        ExtraGuidanceLines.Insert(0, new List<List<Vec2>>());
                                         Gcnt = 0;
-                                        CalculateOffsetList(out List<List<Vec3>> ttt, WidthMinusOverlap * (OldHowManyPathsAway - 2.5 + i), false);
+                                        CalculateOffsetList(out List<List<Vec2>> ttt, WidthMinusOverlap * (OldHowManyPathsAway - 2.5 + i), false);
                                         ExtraGuidanceLines[Gcnt] = ttt;
                                     }
                                 }
@@ -807,9 +501,9 @@ namespace AgOpenGPS
                                     for (int i = 1; i <= Up; i++)
                                     {
                                         ExtraGuidanceLines.RemoveAt(0);
-                                        ExtraGuidanceLines.Insert(5, new List<List<Vec3>>());
+                                        ExtraGuidanceLines.Insert(5, new List<List<Vec2>>());
                                         Gcnt = 5;
-                                        CalculateOffsetList(out List<List<Vec3>> ttt, WidthMinusOverlap * (OldHowManyPathsAway + 2.5 + i), false);
+                                        CalculateOffsetList(out List<List<Vec2>> ttt, WidthMinusOverlap * (OldHowManyPathsAway + 2.5 + i), false);
                                         ExtraGuidanceLines[Gcnt] = ttt;
                                     }
                                 }
@@ -821,9 +515,9 @@ namespace AgOpenGPS
                         OldisSameWay = isSameWay;
                         OldHowManyPathsAway = HowManyPathsAway;
 
-                        CalculateOffsetList(out List<List<Vec3>> tttt, WidthMinusOverlap * HowManyPathsAway + (isSameWay ? -GuidanceOffset : GuidanceOffset), true);
+                        CalculateOffsetList(out List<List<Vec2>> tttt, WidthMinusOverlap * HowManyPathsAway + (isSameWay ? -GuidanceOffset : GuidanceOffset), true);
 
-
+                        if (tttt.Count > 0)
                         curList = tttt[0];
                     }
                 }
@@ -837,75 +531,45 @@ namespace AgOpenGPS
             }
         }
 
-        public void CalculateOffsetList(out List<List<Vec3>> OffsetList, double Offset, bool RoundCorner)
+        public void CalculateOffsetList(out List<List<Vec2>> Output, double Offset, bool RoundCorner)
         {
-            OffsetList = new List<List<Vec3>>();
+            Output = new List<List<Vec2>>();
 
             if (Lines[CurrentLine].Mode == Gmode.AB || Lines[CurrentLine].Mode == Gmode.Heading)
             {
                 double cosHeading = Math.Cos(Lines[CurrentLine].Heading);
                 double sinHeading = Math.Sin(Lines[CurrentLine].Heading);
-                OffsetList.Add(new List<Vec3>());
-                OffsetList[0].Add(new Vec3(Lines[CurrentLine].Segments[0].Northing + cosHeading * -mf.maxCrossFieldLength + sinHeading * -Offset, Lines[CurrentLine].Segments[0].Easting + sinHeading * -mf.maxCrossFieldLength + cosHeading * Offset, Lines[CurrentLine].Heading));
-                OffsetList[0].Add(new Vec3(Lines[CurrentLine].Segments[1].Northing + cosHeading * mf.maxCrossFieldLength + sinHeading * -Offset, Lines[CurrentLine].Segments[1].Easting + sinHeading * mf.maxCrossFieldLength + cosHeading * Offset, Lines[CurrentLine].Heading));
+                Output.Add(new List<Vec2>());
+                Output[0].Add(new Vec2(Lines[CurrentLine].Segments[0].Easting + sinHeading * -mf.maxCrossFieldLength + cosHeading * Offset, Lines[CurrentLine].Segments[0].Northing + cosHeading * -mf.maxCrossFieldLength + sinHeading * -Offset));
+                Output[0].Add(new Vec2(Lines[CurrentLine].Segments[1].Easting + sinHeading * mf.maxCrossFieldLength + cosHeading * Offset, Lines[CurrentLine].Segments[1].Northing + cosHeading * mf.maxCrossFieldLength + sinHeading * -Offset));
             }
             else
             {
                 if (Lines[CurrentLine].Segments.Count > 1)
                 {
-                    List<Vec3> BuildList = new List<Vec3>();
-
-                    Vec3 LastVec = Lines[CurrentLine].Segments[0];
-                    double OffsetSq = Offset * Offset - 0.005;
-
-                    for (int i = 1; i < Lines[CurrentLine].Segments.Count; i++)
+                    if (Math.Abs(Offset) > 0.01)
                     {
-                        double dx1 = Lines[CurrentLine].Segments[i].Northing - LastVec.Northing;
-                        double dy1 = Lines[CurrentLine].Segments[i].Easting - LastVec.Easting;
+                        List<Vec2> OffsetPoints = Lines[CurrentLine].Segments.OffsetPolyline(Offset, CancellationToken.None, Lines[CurrentLine].Mode == Gmode.Boundary);
 
-                        if (i == 1 && Lines[CurrentLine].Mode != Gmode.Boundary)
-                        {
-                            double Heading = Math.Atan2(dy1, dx1);
-                            double cosHeading = Math.Cos(Heading);
-                            double sinHeading = Math.Sin(Heading);
-                            BuildList.Add(new Vec3(Lines[CurrentLine].Segments[0].Northing + cosHeading * -mf.maxCrossFieldLength + sinHeading * -Offset, Lines[CurrentLine].Segments[0].Easting + sinHeading * -mf.maxCrossFieldLength + cosHeading * Offset, Heading));
-                        }
-                        if (i == Lines[CurrentLine].Segments.Count - 1 && Lines[CurrentLine].Mode != Gmode.Boundary)
-                        {
-                            double Heading = Math.Atan2(dy1, dx1);
-                            double cosHeading = Math.Cos(Heading);
-                            double sinHeading = Math.Sin(Heading);
-                            BuildList.Add(new Vec3(Lines[CurrentLine].Segments[Lines[CurrentLine].Segments.Count - 1].Northing + cosHeading * mf.maxCrossFieldLength + sinHeading * -Offset, Lines[CurrentLine].Segments[Lines[CurrentLine].Segments.Count - 1].Easting + sinHeading * mf.maxCrossFieldLength + cosHeading * Offset, Heading));
-                        }
+                        if (Lines[CurrentLine].Mode != Gmode.Boundary)
+                            OffsetPoints.AddFirstLastPoint22(mf.maxCrossFieldLength);
 
-                        double dist = (dy1 * dy1) + (dx1 * dx1);
-                        if (dist > 0.0001)
-                        {
-                            double Heading = Math.Atan2(dy1, dx1);
-                            var point2 = new Vec3(LastVec.Northing + (Math.Sin(Heading) * -Offset), LastVec.Easting + (Math.Cos(Heading) * Offset), Heading);
-                            LastVec = Lines[CurrentLine].Segments[i];
-                            BuildList.Add(point2);
-                        }
+                        Output = OffsetPoints.FixPolyline(Offset, CancellationToken.None, Lines[CurrentLine].Mode == Gmode.Boundary, in mf.bnd.Boundaries[0].Polygon.Points, false);
+                    }
+                    else
+                    {
+                        Output.Add(Lines[CurrentLine].Segments.ToList());
                     }
 
-                    int ctCount = BuildList.Count;
-                    if (ctCount < 6) return;
 
-                    OffsetList.AddRange(BuildList.ClipPolyLine(null, Lines[CurrentLine].Mode == Gmode.Boundary, OffsetSq, CancellationToken.None));
-
-                    if (OffsetList.Count < 1) return;
-                    for (int s = 0; s < OffsetList.Count; s++)
+                    if (RoundCorner)
                     {
-                        if (RoundCorner)
+                        for (int s = 0; s < Output.Count; s++)
                         {
-                            if (OffsetList[s].Count < 4) return;
-                            double distance = Glm.Distance(OffsetList[s][0], OffsetList[s][OffsetList[s].Count - 1]);
-                            bool loop = distance < 5;
-                            OffsetList[s].CalculateRoundedCorner(mf.vehicle.minTurningRadius, loop, 0.0436332, CancellationToken.None);
-                        }
-                        else
-                        {
-                        
+                            if (Output[s].Count < 3) return;
+                            double distance = Glm.Distance(Output[s][0], Output[s][Output[s].Count - 1]);
+                            bool loop = distance < 5 || Lines[CurrentLine].Mode == Gmode.Boundary;
+                            Output[s].CalculateRoundedCorner(mf.vehicle.minTurningRadius, loop, 0.0436332, CancellationToken.None);
                         }
                     }
                 }
@@ -916,18 +580,9 @@ namespace AgOpenGPS
         {
             if (Idx < Lines.Count && Idx > -1)
             {
-                int cnt = Lines[Idx].Segments.Count;
+                Lines[Idx].Segments = Lines[Idx].Segments.OffsetPolyline(dist, CancellationToken.None, Lines[Idx].Mode == Gmode.Boundary);
 
-                Vec3 point;
-                for (int i = 0; i < cnt; i++)
-                {
-                    point.Northing = Lines[Idx].Segments[i].Northing + Math.Sin(Lines[Idx].Segments[i].Heading) * -dist;
-                    point.Easting = Lines[Idx].Segments[i].Easting + Math.Cos(Lines[Idx].Segments[i].Heading) * dist;
-                    point.Heading = Lines[Idx].Segments[i].Heading;
-                    Lines[Idx].Segments[i] = point;
-                }
-
-                if (Idx == CurrentTramLine && mf.tram.displayMode > 0) BuildTram();
+                if (Idx == CurrentTramLine && mf.Guidance.TramDisplayMode > 0) BuildTram();
 
                 if (isSmoothWindowOpen) SmoothAB(SmoothCount * 2);
             }
@@ -938,44 +593,69 @@ namespace AgOpenGPS
         {
             int ptCnt = Lines[CurrentEditLine].Segments.Count;
 
-            if (ptCnt > 4)
+            if (ptCnt > 2)
             {
                 double x = 0, y = 0;
-                for (int i = ptCnt - 5; i < ptCnt; i++)
+
+                double Distance = 0;
+                int i = ptCnt-1;
+
+                for (int j = ptCnt - 2; j > 0; i = j--)
                 {
-                    x += Math.Cos(Lines[CurrentEditLine].Segments[i].Heading);
-                    y += Math.Sin(Lines[CurrentEditLine].Segments[i].Heading);
+                    double lastDistance = Glm.Distance(Lines[CurrentEditLine].Segments[i], Lines[CurrentEditLine].Segments[j]);
+
+                    if (Distance + lastDistance > 15)
+                    {
+                        x += (Lines[CurrentEditLine].Segments[j].Northing - Lines[CurrentEditLine].Segments[i].Northing) / lastDistance * (15 - Distance);
+                        y += (Lines[CurrentEditLine].Segments[j].Easting - Lines[CurrentEditLine].Segments[i].Easting) / lastDistance * (15 - Distance);
+                        Distance = 15 - Distance;
+                        break;
+                    }
+                    x += (Lines[CurrentEditLine].Segments[j].Northing - Lines[CurrentEditLine].Segments[i].Northing);
+                    y += (Lines[CurrentEditLine].Segments[j].Easting - Lines[CurrentEditLine].Segments[i].Easting);
+                    Distance += lastDistance;
                 }
-                x /= 5;
-                y /= 5;
+                x /= Distance;
+                y /= Distance;
+
                 double EndHeading = Math.Atan2(y, x);
 
-                Vec3 EndPoint = Lines[CurrentEditLine].Segments[ptCnt - 1];
-                EndPoint.Heading = EndHeading;
+                Vec2 EndPoint = Lines[CurrentEditLine].Segments[ptCnt - 1];
 
-                EndPoint.Easting += Math.Sin(EndHeading);
-                EndPoint.Northing += Math.Cos(EndHeading);
+                EndPoint.Easting -= Math.Sin(EndHeading) * 20;
+                EndPoint.Northing -= Math.Cos(EndHeading) * 20;
                 Lines[CurrentEditLine].Segments.Add(EndPoint);
-
 
 
                 x = 0;
                 y = 0;
-                for (int i = 0; i < 5; i++)
+                Distance = 0;
+                i = 0;
+
+                for (int j = 1; j < ptCnt; i = j++)
                 {
-                    x += Math.Cos(Lines[CurrentEditLine].Segments[i].Heading);
-                    y += Math.Sin(Lines[CurrentEditLine].Segments[i].Heading);
+                    double lastDistance = Glm.Distance(Lines[CurrentEditLine].Segments[i], Lines[CurrentEditLine].Segments[j]);
+
+                    if (Distance + lastDistance > 15)
+                    {
+                        x += (Lines[CurrentEditLine].Segments[i].Northing - Lines[CurrentEditLine].Segments[j].Northing) / lastDistance * (15 - Distance);
+                        y += (Lines[CurrentEditLine].Segments[i].Easting - Lines[CurrentEditLine].Segments[j].Easting) / lastDistance * (15 - Distance);
+                        Distance = (15 - Distance);
+                        break;
+                    }
+                    x += (Lines[CurrentEditLine].Segments[i].Northing - Lines[CurrentEditLine].Segments[j].Northing);
+                    y += (Lines[CurrentEditLine].Segments[i].Easting - Lines[CurrentEditLine].Segments[j].Easting);
+                    Distance += lastDistance;
                 }
-                x /= 5;
-                y /= 5;
+                x /= Distance;
+                y /= Distance;
                 double StartHeading = Math.Atan2(y, x);
 
                 //and the beginning
-                Vec3 StartPoint = Lines[CurrentEditLine].Segments[1];
-                StartPoint.Heading = StartHeading;
+                Vec2 StartPoint = Lines[CurrentEditLine].Segments[0];
 
-                StartPoint.Easting -= Math.Sin(StartHeading);
-                StartPoint.Northing -= Math.Cos(StartHeading);
+                StartPoint.Easting += Math.Sin(StartHeading) * 20;
+                StartPoint.Northing += Math.Cos(StartHeading) * 20;
                 Lines[CurrentEditLine].Segments.Insert(0, StartPoint);
             }
         }
@@ -985,7 +665,7 @@ namespace AgOpenGPS
 
     public class CGuidanceLine
     {
-        public List<Vec3> Segments = new List<Vec3>();
+        public List<Vec2> Segments = new List<Vec2>();
         public double Heading = 3;
         public string Name = "aa";
         public Gmode Mode;

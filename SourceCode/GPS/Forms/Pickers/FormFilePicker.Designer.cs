@@ -33,10 +33,9 @@
             this.chName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.chDistance = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.chArea = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.btnByDistance = new System.Windows.Forms.Button();
             this.btnOpenExistingLv = new System.Windows.Forms.Button();
-            this.btnDeleteAB = new System.Windows.Forms.Button();
+            this.btnCancel = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // lvLines
@@ -77,10 +76,6 @@
             this.chArea.Text = "Area";
             this.chArea.Width = 140;
             // 
-            // timer1
-            // 
-            this.timer1.Interval = 300;
-            // 
             // btnByDistance
             // 
             this.btnByDistance.BackColor = System.Drawing.Color.Transparent;
@@ -113,18 +108,17 @@
             this.btnOpenExistingLv.UseVisualStyleBackColor = false;
             this.btnOpenExistingLv.Click += new System.EventHandler(this.BtnOpenExistingLv_Click);
             // 
-            // btnDeleteAB
+            // btnCancel
             // 
-            this.btnDeleteAB.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnDeleteAB.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold);
-            this.btnDeleteAB.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.btnDeleteAB.Image = global::AgOpenGPS.Properties.Resources.Cancel64;
-            this.btnDeleteAB.Location = new System.Drawing.Point(31, 500);
-            this.btnDeleteAB.Name = "btnDeleteAB";
-            this.btnDeleteAB.Size = new System.Drawing.Size(227, 63);
-            this.btnDeleteAB.TabIndex = 91;
-            this.btnDeleteAB.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
-            this.btnDeleteAB.Click += new System.EventHandler(this.BtnDeleteAB_Click);
+            this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.btnCancel.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold);
+            this.btnCancel.ForeColor = System.Drawing.SystemColors.ControlText;
+            this.btnCancel.Image = global::AgOpenGPS.Properties.Resources.Cancel64;
+            this.btnCancel.Location = new System.Drawing.Point(31, 500);
+            this.btnCancel.Name = "btnCancel";
+            this.btnCancel.Size = new System.Drawing.Size(227, 63);
+            this.btnCancel.TabIndex = 91;
+            this.btnCancel.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
             // 
             // FormFilePicker
             // 
@@ -134,7 +128,7 @@
             this.ControlBox = false;
             this.Controls.Add(this.btnByDistance);
             this.Controls.Add(this.btnOpenExistingLv);
-            this.Controls.Add(this.btnDeleteAB);
+            this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.lvLines);
             this.Font = new System.Drawing.Font("Tahoma", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Margin = new System.Windows.Forms.Padding(5);
@@ -154,8 +148,7 @@
         private System.Windows.Forms.ColumnHeader chDistance;
         private System.Windows.Forms.Button btnByDistance;
         private System.Windows.Forms.Button btnOpenExistingLv;
-        private System.Windows.Forms.Button btnDeleteAB;
-        private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.Button btnCancel;
         private System.Windows.Forms.ColumnHeader chArea;
     }
 }

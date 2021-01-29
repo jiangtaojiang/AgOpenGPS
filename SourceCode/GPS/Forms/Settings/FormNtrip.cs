@@ -75,8 +75,8 @@ namespace AgOpenGPS
             TboxLatitude.Text = (latitude = Properties.Settings.Default.setNTRIP_manualLat).ToString("N7");
             TboxLongitude.Text = (longitude = Properties.Settings.Default.setNTRIP_manualLon).ToString("N7");
 
-            //tboxCurrentLat.Text = mf.pn.latitude.ToString("N7");
-            //tboxCurrentLon.Text = mf.pn.longitude.ToString("N7");
+            tboxCurrentLat.Text = (mf.Latitude + 0).ToString("N7");
+            tboxCurrentLon.Text = (mf.Longitude + 0).ToString("N7");
 
             checkBoxusetcp.Checked = Properties.Settings.Default.setNTRIP_isTCP;
 
@@ -184,14 +184,14 @@ namespace AgOpenGPS
 
         private void BtnSetManualPosition_Click(object sender, EventArgs e)
         {
-            TboxLatitude.Text = (latitude = Math.Round(mf.pn.latitude,7)).ToString("N7");
-            TboxLongitude.Text = (longitude = Math.Round(mf.pn.longitude,7)).ToString("N7");
+            TboxLatitude.Text = (latitude = Math.Round(mf.Latitude,7)).ToString("N7");
+            TboxLongitude.Text = (longitude = Math.Round(mf.Longitude,7)).ToString("N7");
         }
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            //tboxCurrentLat.Text = mf.pn.latitude.ToString("N7");
-            //tboxCurrentLon.Text = mf.pn.longitude.ToString("N7");
+            tboxCurrentLat.Text = (mf.Latitude + 0).ToString("N7");
+            tboxCurrentLon.Text = (mf.Longitude + 0).ToString("N7");
         }
 
         public List<string> DataList { get; set; } = new List<string>();
@@ -262,7 +262,7 @@ namespace AgOpenGPS
             if (DataList.Count > 0)
             {
                 string syte = "http://monitor.use-snip.com/?hostUrl=" + tboxCasterIP.Text + "&port=" + casterport.ToString();
-                var form = new FormSource(this, DataList, mf.pn.latitude, mf.pn.longitude, syte);
+                var form = new FormSource(this, DataList, mf.Latitude, mf.Longitude, syte);
                 form.ShowDialog(this);
             }
             else

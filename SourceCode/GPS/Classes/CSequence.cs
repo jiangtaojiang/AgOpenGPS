@@ -152,12 +152,12 @@ namespace AgOpenGPS
                     return;
                 }
 
-                bool tt = mf.yt.ytLength - mf.yt.onA > 0.5 * mf.yt.ytLength;
+                bool tt = mf.Guidance.ytLength - mf.Guidance.onA > 0.5 * mf.Guidance.ytLength;
 
                 for (int i = 0; i < FormGPS.MAXFUNCTIONS; i++)
                 {
                     //have we gone past the distance and still haven't done it
-                    if (tt && mf.yt.onA >= mf.seq.seqEnter[i].distance && !mf.seq.seqEnter[i].isTrig)
+                    if (tt && mf.Guidance.onA >= mf.seq.seqEnter[i].distance && !mf.seq.seqEnter[i].isTrig)
                     {
                         //it shall only run once
                         mf.seq.seqEnter[i].isTrig = true;
@@ -165,7 +165,7 @@ namespace AgOpenGPS
                         mf.DoYouTurnSequenceEvent(mf.seq.seqEnter[i].function, mf.seq.seqEnter[i].action);
                         mf.UpdateSendDataText("Uturn: " + Convert.ToString(mf.mc.Send_Uturn[5], 2).PadLeft(8, '0'));
                     }
-                    else if (!tt && !mf.seq.seqExit[i].isTrig && (Force || Math.Round(mf.yt.ytLength - mf.yt.onA, 1) <= mf.seq.seqExit[i].distance))
+                    else if (!tt && !mf.seq.seqExit[i].isTrig && (Force || Math.Round(mf.Guidance.ytLength - mf.Guidance.onA, 1) <= mf.seq.seqExit[i].distance))
                     {
                         //it shall only run once
                         mf.seq.seqExit[i].isTrig = true;

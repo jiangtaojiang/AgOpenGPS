@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Windows.Forms;
 
 namespace AgOpenGPS
@@ -27,23 +24,19 @@ namespace AgOpenGPS
             }
         }
 
-        private void FormFilePicker_Load(object sender, EventArgs e)
-        {
-        }
-
         private void BtnOpenExistingLv_Click(object sender, EventArgs e)
         {
             int count = lvLines.SelectedItems.Count;
             if (count > 0)
             {
-                mf.filePickerFileAndDirectory = (mf.fieldsDirectory + lvLines.SelectedItems[0].SubItems[0].Text + "\\Field.txt");
+                mf.currentFieldDirectory = lvLines.SelectedItems[0].SubItems[0].Text;
                 Close();
             }
         }
 
         private void BtnDeleteAB_Click(object sender, EventArgs e)
         {
-            mf.filePickerFileAndDirectory = "";
+            mf.currentFieldDirectory = "";
         }
 
     }

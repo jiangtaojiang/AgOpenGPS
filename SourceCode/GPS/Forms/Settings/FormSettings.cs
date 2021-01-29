@@ -116,11 +116,10 @@ namespace AgOpenGPS
             {
                 Properties.Vehicle.Default.UturnTriggerDistance = mf.vehicle.minTurningRadius;
 
-                for (int i = 0; i < mf.bnd.bndArr.Count; i++)
+                for (int i = 0; i < mf.bnd.Boundaries.Count; i++)
                 {
-                    mf.StartTasks(mf.bnd.bndArr[i], i, TaskName.TurnLine);
+                    mf.StartTasks(mf.bnd.Boundaries[i], i, TaskName.TurnLine);
                 }
-
             }
 
             //GuidanceTab

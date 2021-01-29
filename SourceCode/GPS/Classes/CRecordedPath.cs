@@ -63,12 +63,11 @@ namespace AgOpenGPS
         //pure pursuit values
         public Vec3 steerAxlePosRP = new Vec3(0, 0, 0);
 
-        public Vec3 homePos = new Vec3();
         public Vec2 goalPointRP = new Vec2(0, 0);
         public double steerAngleRP, rEastRP, rNorthRP;
 
         public bool isBtnFollowOn, isEndOfTheRecLine, isRecordOn;
-        public bool isDrivingRecordedPath, isPausedDrivingRecordedPath, isFollowingDubinsToPath, isFollowingRecPath, isFollowingDubinsHome;
+        public bool isDrivingRecordedPath, isPausedDrivingRecordedPath, isFollowingRecPath, isFollowingDubinsHome;
 
         public bool StartDrivingRecordedPath()
         {
@@ -77,23 +76,9 @@ namespace AgOpenGPS
             recListCount = recList.Count;
             if (recListCount < 5) return false;
 
-            //the goal is the first point of path, the start is the current position
-            Vec3 goal = new Vec3(recList[0].Northing, recList[0].Easting, recList[0].Heading);
-
-            //save a copy of where we started.
-            homePos = mf.pivotAxlePos;
-
-            //get the dubins for approach to recorded path
-            GetDubinsPath(goal);
-            shuttleListCount = shuttleDubinsList.Count;
-
-            //has a valid dubins path been created?
-            if (shuttleListCount == 0) return false;
-
             //technically all good if we get here so set all the flags
             isFollowingDubinsHome = false;
-            isFollowingRecPath = false;
-            isFollowingDubinsToPath = true;
+            isFollowingRecPath = true;
             isEndOfTheRecLine = false;
             currentPositonIndex = 0;
             isDrivingRecordedPath = true;
@@ -108,31 +93,6 @@ namespace AgOpenGPS
 
         public void UpdatePosition()
         {
-            if (isFollowingDubinsToPath)
-            {
-                //set a speed of 10 kmh
-                mf.sim.stepDistance = shuttleDubinsList[C].Speed / 17.86;
-
-                steerAxlePosRP = mf.steerAxlePos;
-
-                StanleyDubinsPath(shuttleListCount);
-
-                //check if close to recorded path
-                int cnt = shuttleDubinsList.Count;
-                pathCount = cnt - B;
-                if (pathCount < 8)
-                {
-                    double distSqr = Glm.DistanceSquared(steerAxlePosRP.Northing, steerAxlePosRP.Easting, recList[0].Northing, recList[0].Easting);
-                    if (distSqr < 2)
-                    {
-                        isFollowingRecPath = true;
-                        isFollowingDubinsToPath = false;
-                        shuttleDubinsList.Clear();
-                        shortestDubinsList.Clear();
-                    }
-                }
-            }
-
             if (isFollowingRecPath)
             {
                 steerAxlePosRP = mf.steerAxlePos;
@@ -154,23 +114,8 @@ namespace AgOpenGPS
                 }
                 else
                 {
-                    //create the dubins path based on start and goal to start trip home
-                    GetDubinsPath(homePos);
-                    shuttleListCount = shuttleDubinsList.Count;
-
-                    //its too small
-                    if (shuttleListCount < 3)
-                    {
-                        StopDrivingRecordedPath();
-                        return;
-                    }
-
-                    //set all the flags
-                    isFollowingDubinsHome = true;
-                    A = B = C = 0;
-                    isFollowingRecPath = false;
-                    isFollowingDubinsToPath = false;
-                    isEndOfTheRecLine = false;
+                    StopDrivingRecordedPath();
+                    return;
                 }
             }
 
@@ -198,7 +143,6 @@ namespace AgOpenGPS
         {
             isFollowingDubinsHome = false;
             isFollowingRecPath = false;
-            isFollowingDubinsToPath = false;
             shuttleDubinsList.Clear();
             shortestDubinsList.Clear();
             mf.sim.stepDistance = 0;
@@ -208,94 +152,6 @@ namespace AgOpenGPS
             isDrivingRecordedPath = false;
             mf.goPathMenu.Image = Properties.Resources.AutoGo;
             isPausedDrivingRecordedPath = false;
-        }
-
-        private void GetDubinsPath(Vec3 goal)
-        {
-            CDubins.turningRadius = mf.vehicle.minTurningRadius * 1.0;
-            CDubins dubPath = new CDubins();
-
-            // current psition
-            steerAxlePosRP = mf.pivotAxlePos;
-
-            //bump it forward
-            Vec3 pt2 = new Vec3
-            {
-                Easting = steerAxlePosRP.Easting + (Math.Sin(steerAxlePosRP.Heading) * 3),
-                Northing = steerAxlePosRP.Northing + (Math.Cos(steerAxlePosRP.Heading) * 3),
-                Heading = steerAxlePosRP.Heading
-            };
-
-            //get the dubins path vec3 point coordinates of turn
-            shortestDubinsList.Clear();
-            shuttleDubinsList.Clear();
-
-            shortestDubinsList = dubPath.GenerateDubins(pt2, goal, mf.gf);
-
-            //if Dubins returns 0 elements, there is an unavoidable blockage in the way.
-            if (shortestDubinsList.Count > 0)
-            {
-                shortestDubinsList.Insert(0, mf.pivotAxlePos);
-
-                //transfer point list to recPath class point style
-                for (int i = 0; i < shortestDubinsList.Count; i++)
-                {
-                    CRecPathPt pt = new CRecPathPt(shortestDubinsList[i].Easting, shortestDubinsList[i].Northing, shortestDubinsList[i].Heading, 9.0, false);
-                    shuttleDubinsList.Add(pt);
-                }
-                return;
-            }
-
-            //find a path from start to goal - diagnostic, but also used later
-            mazeList = mf.mazeGrid.SearchForPath(pt2, goal);
-
-            //you can't get anywhere!
-            if (mazeList == null) return;
-
-            //start is navigateable - maybe
-            int cnt = mazeList.Count;
-
-            if (cnt > 0)
-            {
-                {
-                    int turnRadius = (int)(3 * mf.vehicle.minTurningRadius);
-                    if (cnt > 2 * turnRadius)
-                    {
-                        mazeList.RemoveRange(0, turnRadius);
-                        cnt = mazeList.Count;
-                        mazeList.RemoveRange(cnt - turnRadius, turnRadius);
-                    }
-                }
-
-                shortestDubinsList = dubPath.GenerateDubins(pt2, mazeList[0], mf.gf);
-                if (shortestDubinsList.Count > 0)
-                {
-                    for (int i = 0; i < shortestDubinsList.Count; i++)
-                    {
-                        CRecPathPt pt = new CRecPathPt(shortestDubinsList[i].Easting, shortestDubinsList[i].Northing, shortestDubinsList[i].Heading, 10.0, false);
-                        shuttleDubinsList.Add(pt);
-                    }
-                }
-                else
-                {
-                    return; //unable to generate a dubins to the start
-                }
-
-                for (int i = 0; i < mazeList.Count; i++)
-                {
-                    CRecPathPt pt = new CRecPathPt(mazeList[i].Easting, mazeList[i].Northing, mazeList[i].Heading, 15.0, false);
-                    shuttleDubinsList.Add(pt);
-                }
-
-                shortestDubinsList = dubPath.GenerateDubins(mazeList[mazeList.Count - 1], goal, mf.gf);
-
-                for (int i = 0; i < shortestDubinsList.Count; i++)
-                {
-                    CRecPathPt pt = new CRecPathPt(shortestDubinsList[i].Easting, shortestDubinsList[i].Northing, shortestDubinsList[i].Heading, 11.0, false);
-                    shuttleDubinsList.Add(pt);
-                }
-                return;
-            }
         }
 
         private void StanleyRecPath(int ptCount)

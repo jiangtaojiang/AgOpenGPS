@@ -449,14 +449,14 @@ namespace AgOpenGPS
             Vec2 Pos = LeftPoint + diff * (ToolWidth / 2 + Sections[Section].positionLeft);
             GL.Vertex3(Pos.Easting, Pos.Northing, 0);
 
-            Vec3 point = new Vec3(Pos.Northing, Pos.Easting, 0);
+            Vec3 point = new Vec3(Pos.Easting, Pos.Northing, 0);
 
             //add the point to List
             Sections[Section].triangleList.Add(point);
 
             //Right side
             Pos = LeftPoint + diff * (ToolWidth / 2 + Sections[Section].positionRight);
-            Vec3 point2 = new Vec3(Pos.Northing, Pos.Easting, 0);
+            Vec3 point2 = new Vec3(Pos.Easting, Pos.Northing, 0);
 
             //add the point to the list
             Sections[Section].triangleList.Add(point2);
@@ -535,12 +535,12 @@ namespace AgOpenGPS
                 Vec2 diff = (RightPoint - LeftPoint) / ToolWidth;
 
                 Vec2 Pos = LeftPoint + diff * (ToolWidth / 2 + Sections[Section].positionLeft);
-                Vec3 point = new Vec3(Pos.Northing, Pos.Easting, 0);
+                Vec3 point = new Vec3(Pos.Easting, Pos.Northing, 0);
                 Sections[Section].triangleList.Add(point);
 
                 //Right side of triangle
                 Pos = LeftPoint + diff * (ToolWidth / 2 + Sections[Section].positionRight);
-                point = new Vec3(Pos.Northing, Pos.Easting, 0);
+                point = new Vec3(Pos.Easting, Pos.Northing, 0);
                 Sections[Section].triangleList.Add(point);
             }
         }

@@ -13,7 +13,7 @@ namespace AgOpenGPS
     {
         public double Easting, Northing, Heading;
 
-        public Vec3(double northing, double easting, double heading)
+        public Vec3(double easting, double northing, double heading)
         {
             Northing = northing;
             Easting = easting;
@@ -22,16 +22,22 @@ namespace AgOpenGPS
 
         public static Vec3 operator *(Vec3 self, double s)
         {
-            return new Vec3(self.Northing * s, self.Easting * s, self.Heading * s);
+            return new Vec3(self.Easting * s, self.Northing * s, self.Heading * s);
+        }
+
+        public static Vec3 operator /(Vec3 self, double s)
+        {
+            return new Vec3(self.Easting * s, self.Northing * s, self.Heading * s);
         }
 
         public static Vec3 operator +(Vec3 lhs, Vec3 rhs)
         {
-            return new Vec3(lhs.Northing + rhs.Northing, lhs.Easting + rhs.Easting, lhs.Heading + rhs.Heading);
+            return new Vec3(lhs.Easting + rhs.Easting, lhs.Northing + rhs.Northing, lhs.Heading + rhs.Heading);
         }
+
         public static Vec3 operator -(Vec3 lhs, Vec3 rhs)
         {
-            return new Vec3(lhs.Northing - rhs.Northing, lhs.Easting - rhs.Easting, lhs.Heading - rhs.Heading);
+            return new Vec3(lhs.Easting - rhs.Easting, lhs.Northing - rhs.Northing, lhs.Heading - rhs.Heading);
         }
     }
 
@@ -48,7 +54,7 @@ namespace AgOpenGPS
         public double Time;
         public int Index;
 
-        public Vec4(double northing, double easting, double heading,double time, int index)
+        public Vec4(double easting, double northing, double heading, double time, int index)
         {
             Northing = northing;
             Easting = easting;
@@ -95,12 +101,13 @@ namespace AgOpenGPS
         public double Easting;
         public double Northing;
 
-        public Vec2(double northing, double easting)
+        public Vec2(double easting, double northing)
         {
             Easting = easting;
             Northing = northing;
         }
-        public Vec2(Vec3 point)
+
+        public Vec2(Vec2 point)
         {
             Easting = point.Easting;
             Northing = point.Northing;
@@ -114,7 +121,7 @@ namespace AgOpenGPS
                 throw new DivideByZeroException("Trying to normalize a vector with length of zero.");
             }
 
-            return new Vec2(Northing /= length, Easting /= length);
+            return new Vec2(Easting /= length, Northing /= length);
         }
 
         public double GetLength()
@@ -129,34 +136,24 @@ namespace AgOpenGPS
 
         public static Vec2 operator *(Vec2 self, double s)
         {
-            return new Vec2(self.Northing * s, self.Easting * s);
+            return new Vec2(self.Easting * s, self.Northing * s);
         }
         public static Vec2 operator /(Vec2 self, double s)
         {
-            return new Vec2(self.Northing / s, self.Easting / s);
+            return new Vec2(self.Easting / s, self.Northing / s);
         }
 
         public static Vec2 operator +(Vec2 lhs, Vec2 rhs)
         {
-            return new Vec2(lhs.Northing + rhs.Northing, lhs.Easting + rhs.Easting);
+            return new Vec2(lhs.Easting + rhs.Easting, lhs.Northing + rhs.Northing);
         }
         public static Vec2 operator -(Vec2 lhs, Vec2 rhs)
         {
-            return new Vec2(lhs.Northing - rhs.Northing, lhs.Easting - rhs.Easting);
+            return new Vec2(lhs.Easting - rhs.Easting, lhs.Northing - rhs.Northing);
         }
         public static Vec2 operator -(Vec3 lhs, Vec2 rhs)
         {
-            return new Vec2(lhs.Northing - rhs.Northing, lhs.Easting - rhs.Easting);
+            return new Vec2(lhs.Easting - rhs.Easting, lhs.Northing - rhs.Northing);
         }
-    }
-
-    //structure for contour guidance
-    public struct CVec
-    {
-        public double x;
-        public double z;
-        public double h;
-        public int strip;
-        public int pt;
     }
 }
